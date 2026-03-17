@@ -1,0 +1,10 @@
+{
+  "name": "BEX Coffee — Alan Temizlik Kontrolü",
+  "short_name": "BEX Coffee",
+  "start_url": "index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F3EDE4",
+  "theme_color": "#18100B",
+  "icons": []
+}

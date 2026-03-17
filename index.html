@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BEX Coffee">
+<meta name="theme-color" content="#18100B">
+<link rel="manifest" href="manifest.json">
+<title>BEX Coffee — Alan Temizlik Kontrolü</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --espresso:#18100B;--brown:#4A2E1E;--amber:#D97B2A;--amber-l:#F5A84A;
+  --amber-pale:#FFF3E0;--cream:#FDF8F2;--bg:#F3EDE4;--card:#FFFFFF;
+  --text:#1A0F08;--muted:#7A6558;--border:#E0D5C8;
+  --success:#27600A;--success-bg:#EAF3DE;--danger:#A32D2D;--danger-bg:#FCEBEB;
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+
+/* HEADER */
+.header{background:var(--espresso);display:flex;align-items:stretch;flex-shrink:0;height:56px;overflow-x:auto}
+.brand{padding:0 18px;display:flex;align-items:center;gap:10px;border-right:1px solid rgba(255,255,255,.1);flex-shrink:0}
+.brand-logo{width:30px;height:30px;background:var(--amber);border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#fff;flex-shrink:0}
+.brand-text{font-size:14px;font-weight:600;color:#fff;line-height:1}
+.brand-sub{font-size:10px;color:rgba(255,255,255,.4);margin-top:2px}
+.tabs{display:flex;flex:1}
+.tab-btn{padding:0 16px;height:100%;border:none;background:none;color:rgba(255,255,255,.5);font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;flex-shrink:0}
+.tab-btn:hover{color:rgba(255,255,255,.8)}
+.tab-btn.active{color:var(--amber-l);border-bottom-color:var(--amber-l)}
+.clock-wrap{padding:0 16px;display:flex;align-items:center;gap:6px;border-left:1px solid rgba(255,255,255,.1);flex-shrink:0}
+#live-time{font-size:14px;font-weight:700;color:rgba(255,255,255,.9);font-variant-numeric:tabular-nums}
+
+.content{flex:1;padding:20px;max-width:1100px;margin:0 auto;width:100%}
+.tab-pane{display:none}.tab-pane.active{display:block}
+
+/* PANEL — multi-timer grid */
+.panel-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.panel-title{font-size:15px;font-weight:700}
+.today-info{font-size:12px;color:var(--muted)}
+.timer-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:14px}
+
+/* TIMER CARD */
+.timer-card{background:var(--card);border-radius:14px;border:1.5px solid var(--border);padding:14px 10px 12px;text-align:center;position:relative;transition:border-color .2s}
+.timer-card.urgent{border-color:#A32D2D;animation:borderPulse 1s ease-in-out infinite}
+@keyframes borderPulse{0%,100%{border-color:#A32D2D}50%{border-color:#F7C1C1}}
+.timer-card.inactive{opacity:.45}
+.tc-name{font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tc-svg{display:block;margin:0 auto}
+.tc-time{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;fill:var(--text)}
+.tc-sub{font-size:8px;fill:var(--muted)}
+.tc-interval{font-size:10px;color:var(--muted);margin-top:7px}
+.tc-actions{display:flex;gap:5px;margin-top:8px}
+.btn-tc{flex:1;padding:5px 0;border-radius:6px;border:1px solid var(--border);background:none;color:var(--muted);font-size:10px;cursor:pointer;transition:all .15s}
+.btn-tc:hover{border-color:var(--amber);color:var(--amber)}
+.btn-tc-alarm{border-color:var(--amber);color:var(--amber)}
+.btn-tc-alarm:hover{background:var(--amber);color:#fff}
+
+/* PANEL — active staff side */
+.panel-layout{display:grid;grid-template-columns:1fr 240px;gap:18px;align-items:start}
+@media(max-width:720px){.panel-layout{grid-template-columns:1fr}}
+
+/* ACTIVE STAFF CARD */
+.card{background:var(--card);border-radius:12px;border:1px solid var(--border);overflow:hidden}
+.card-hd{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.card-title{font-size:13px;font-weight:600}
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-ok{background:var(--success-bg);color:var(--success)}
+.badge-off{background:#F3EDE4;color:var(--muted)}
+.badge-warn{background:var(--danger-bg);color:var(--danger)}
+.staff-row{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)}
+.staff-row:last-child{border-bottom:none}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--amber-pale);border:2px solid var(--amber-l);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--amber);flex-shrink:0}
+.staff-nm{font-size:13px;font-weight:600}
+.staff-sh{font-size:10px;color:var(--muted);margin-top:1px}
+.empty{padding:24px;text-align:center;color:var(--muted);font-size:13px}
+
+/* DAY TABS */
+.day-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.day-tab{padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--muted);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;position:relative}
+.day-tab:hover{border-color:var(--amber);color:var(--amber)}
+.day-tab.active{background:var(--amber);border-color:var(--amber);color:#fff;font-weight:600}
+.day-tab.today-tab::after{content:'bugün';position:absolute;top:-7px;left:50%;transform:translateX(-50%);background:var(--espresso);color:var(--amber-l);font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px;white-space:nowrap}
+
+/* TABLES */
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:9px 14px 7px}
+td{padding:9px 14px;font-size:13px;border-top:1px solid var(--border);vertical-align:middle}
+tr:hover td{background:var(--cream)}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle}
+.dot-on{background:var(--success)}.dot-off{background:var(--border)}
+.btn-del{padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--muted);font-size:11px;cursor:pointer;transition:all .15s}
+.btn-del:hover{border-color:var(--danger);color:var(--danger)}
+
+/* FORMS */
+.add-form{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:16px;margin-top:14px}
+.form-title{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.form-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.fg input,.fg select{padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--card);color:var(--text);outline:none;transition:border-color .15s;font-family:inherit}
+.fg input:focus,.fg select:focus{border-color:var(--amber)}
+.btn-add{padding:8px 15px;background:var(--amber);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap}
+.btn-add:hover{background:var(--amber-l)}
+
+/* INTERVAL EDIT inline */
+.interval-edit{display:flex;align-items:center;gap:5px}
+.interval-edit input{width:55px;padding:4px 7px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--card);color:var(--text);outline:none;font-family:inherit}
+.interval-edit input:focus{border-color:var(--amber)}
+.interval-save{padding:4px 9px;border:1px solid var(--amber);border-radius:6px;background:none;color:var(--amber);font-size:11px;cursor:pointer;transition:all .15s}
+.interval-save:hover{background:var(--amber);color:#fff}
+
+/* ALARM OVERLAY */
+.overlay{position:fixed;inset:0;background:rgba(18,10,5,.85);display:none;align-items:center;justify-content:center;z-index:900;padding:16px}
+.overlay.show{display:flex}
+.alarm-box{background:var(--card);border-radius:20px;width:100%;max-width:400px;border:3px solid var(--amber);animation:popIn .28s cubic-bezier(.34,1.56,.64,1);overflow:hidden}
+@keyframes popIn{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+.alarm-hd{background:linear-gradient(135deg,#D97B2A,#BA5E10);padding:22px 24px;text-align:center}
+.alarm-icon-big{font-size:36px;margin-bottom:6px}
+.alarm-area{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.01em}
+.alarm-person-hd{font-size:13px;color:rgba(255,255,255,.8);margin-top:5px}
+.alarm-body{padding:20px 22px}
+.alarm-info-row{display:flex;align-items:center;gap:10px;padding:12px;background:var(--cream);border-radius:10px;border:1px solid var(--border);margin-bottom:14px}
+.alarm-info-icon{font-size:24px}
+.alarm-info-label{font-size:11px;color:var(--muted)}
+.alarm-info-val{font-size:14px;font-weight:600}
+.alarm-warn{font-size:12px;color:var(--danger);background:var(--danger-bg);padding:8px 12px;border-radius:8px;margin-bottom:14px;text-align:center}
+.btn-alarm-confirm{width:100%;padding:13px;background:var(--amber);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;transition:background .15s}
+.btn-alarm-confirm:hover{background:var(--amber-l)}
+.alarm-queue-info{text-align:center;font-size:11px;color:var(--muted);margin-top:10px}
+
+/* ALARM BELL badge on timer card */
+.tc-bell{position:absolute;top:8px;right:8px;width:18px;height:18px;background:var(--danger);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;display:none}
+.tc-bell.show{display:flex}
+
+.ring-urgent{animation:opulse 1s ease-in-out infinite}
+@keyframes opulse{0%,100%{opacity:1}50%{opacity:.45}}
+
+/* TOGGLE SWITCH */
+.toggle-sw{position:relative;display:inline-block;width:42px;height:24px;flex-shrink:0}
+.toggle-sw input{opacity:0;width:0;height:0}
+.toggle-knob{position:absolute;inset:0;background:#D5C9BB;border-radius:24px;cursor:pointer;transition:background .2s}
+.toggle-knob::before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s}
+.toggle-sw input:checked+.toggle-knob{background:var(--amber)}
+.toggle-sw input:checked+.toggle-knob::before{transform:translateX(18px)}
+
+/* SOUND OPTION */
+.snd-opt{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:9px;border:1.5px solid var(--border);background:var(--card);cursor:pointer;transition:all .15s;gap:10px}
+.snd-opt.selected{border-color:var(--amber);background:var(--amber-pale)}
+.snd-opt:hover{border-color:var(--amber-l)}
+.snd-opt-info{flex:1}
+.snd-opt-name{font-size:13px;font-weight:600}
+.snd-opt-desc{font-size:10px;color:var(--muted);margin-top:2px}
+.btn-preview{padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--muted);font-size:11px;cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0}
+.btn-preview:hover{border-color:var(--amber);color:var(--amber)}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="brand">
+    <div class="brand-logo">BX</div>
+    <div>
+      <div class="brand-text">BEX Coffee</div>
+      <div class="brand-sub">Alan Kontrolü</div>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="panel">Kontrol Paneli</button>
+    <button class="tab-btn" data-tab="shifts">Haftalık Vardiya</button>
+    <button class="tab-btn" data-tab="areas">Alanlar</button>
+    <button class="tab-btn" data-tab="personel">Personel</button>
+  </nav>
+  <div class="clock-wrap">
+    <span id="live-time" style="font-size:14px;font-weight:700;color:rgba(255,255,255,.9);font-variant-numeric:tabular-nums">--:--:--</span>
+    <button onclick="toggleSettings()" style="margin-left:10px;padding:5px 10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:7px;color:rgba(255,255,255,.8);font-size:12px;cursor:pointer;white-space:nowrap" id="settings-btn">⚙ Ses</button>
+  </div>
+</header>
+
+<main class="content">
+
+  <!-- PANEL -->
+  <div id="pane-panel" class="tab-pane active">
+    <div class="panel-layout">
+      <div>
+        <div class="panel-top">
+          <div>
+            <div class="panel-title">Alan Sayaçları</div>
+            <div class="today-info" id="panel-today-info"></div>
+          </div>
+          <span id="active-badge" class="badge badge-off">—</span>
+        </div>
+        <div class="timer-grid" id="timer-grid"></div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-hd">
+            <span class="card-title">Bugün Vardiyada</span>
+          </div>
+          <div id="active-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VARDİYA -->
+  <div id="pane-shifts" class="tab-pane">
+    <div class="day-tabs" id="day-tabs"></div>
+    <div class="card" style="overflow:hidden">
+      <div class="card-hd">
+        <span class="card-title" id="shift-day-title">—</span>
+        <span id="shift-day-badge" class="badge badge-off"></span>
+      </div>
+      <table>
+        <thead><tr><th>Personel</th><th>Giriş</th><th>Çıkış</th><th>Durum</th><th></th></tr></thead>
+        <tbody id="shift-tbody"></tbody>
+      </table>
+    </div>
+    <div class="add-form">
+      <div class="form-title">Bu Güne Personel Ekle</div>
+      <div class="form-row">
+        <div class="fg" style="flex:2;min-width:140px">
+          <label>Personel</label>
+          <select id="sh-staff"><option value="">— Seçiniz —</option></select>
+        </div>
+        <div class="fg"><label>Giriş</label><input type="time" id="sh-start" value="08:00"></div>
+        <div class="fg"><label>Çıkış</label><input type="time" id="sh-end" value="16:00"></div>
+        <button class="btn-add" onclick="addShiftEntry()">Ekle</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ALANLAR -->
+  <div id="pane-areas" class="tab-pane">
+    <div class="card" style="overflow:hidden">
+      <div class="card-hd">
+        <span class="card-title">Temizlik Alanları</span>
+        <span id="area-count-badge" class="badge badge-off"></span>
+      </div>
+      <table>
+        <thead><tr><th>Alan Adı</th><th>Kontrol Sıklığı</th><th></th></tr></thead>
+        <tbody id="areas-tbody"></tbody>
+      </table>
+    </div>
+    <div class="add-form">
+      <div class="form-title">Yeni Alan Ekle</div>
+      <div class="form-row">
+        <div class="fg" style="flex:2;min-width:140px">
+          <label>Alan Adı</label>
+          <input type="text" id="new-aname" placeholder="Ör: Bar Tezgahı">
+        </div>
+        <div class="fg" style="min-width:110px">
+          <label>Kontrol (dk)</label>
+          <input type="number" id="new-amin" value="30" min="1" max="480" style="width:100px">
+        </div>
+        <button class="btn-add" onclick="addArea()">Ekle</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PERSONEL -->
+  <div id="pane-personel" class="tab-pane">
+    <div class="card" style="overflow:hidden">
+      <div class="card-hd">
+        <span class="card-title">Personel Listesi</span>
+        <span id="personel-badge" class="badge badge-off"></span>
+      </div>
+      <table>
+        <thead><tr><th>Ad Soyad</th><th>Vardiya Günleri</th><th></th></tr></thead>
+        <tbody id="personel-tbody"></tbody>
+      </table>
+    </div>
+    <div class="add-form">
+      <div class="form-title">Yeni Personel Ekle</div>
+      <div class="form-row">
+        <div class="fg" style="flex:1;min-width:180px">
+          <label>Ad Soyad</label>
+          <input type="text" id="new-pname" placeholder="Personel adı">
+        </div>
+        <button class="btn-add" onclick="addPersonel()">Ekle</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- SETTINGS DRAWER -->
+<div id="settings-drawer" style="display:none;position:fixed;top:56px;right:0;width:340px;height:calc(100vh - 56px);background:var(--card);border-left:1px solid var(--border);z-index:800;overflow-y:auto;box-shadow:-4px 0 24px rgba(0,0,0,.1)">
+  <div style="padding:20px">
+    <div style="font-size:14px;font-weight:700;margin-bottom:18px;color:var(--text)">Ses Ayarları</div>
+
+    <!-- ON/OFF -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg);border-radius:10px;margin-bottom:14px">
+      <div>
+        <div style="font-size:13px;font-weight:600">Alarm Sesi</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">Alarm çaldığında ses çıksın</div>
+      </div>
+      <label class="toggle-sw">
+        <input type="checkbox" id="snd-enabled" onchange="saveAudioSettings()" checked>
+        <span class="toggle-knob"></span>
+      </label>
+    </div>
+
+    <!-- VOLUME -->
+    <div style="padding:12px 14px;background:var(--bg);border-radius:10px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:13px;font-weight:600">Ses Seviyesi</div>
+        <span id="vol-val" style="font-size:12px;font-weight:700;color:var(--amber)">70%</span>
+      </div>
+      <input type="range" min="0" max="100" value="70" id="snd-volume" step="5"
+        oninput="document.getElementById('vol-val').textContent=this.value+'%'" onchange="saveAudioSettings()"
+        style="width:100%;accent-color:var(--amber)">
+    </div>
+
+    <!-- SOUND PICKER -->
+    <div style="margin-bottom:6px;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)">Alarm Sesi Seç</div>
+    <div id="sound-list" style="display:flex;flex-direction:column;gap:8px"></div>
+
+    <!-- REPEAT -->
+    <div style="padding:12px 14px;background:var(--bg);border-radius:10px;margin-top:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:13px;font-weight:600">Tekrar Sayısı</div>
+        <span id="rep-val" style="font-size:12px;font-weight:700;color:var(--amber)">3x</span>
+      </div>
+      <input type="range" min="1" max="8" value="3" id="snd-repeat" step="1"
+        oninput="document.getElementById('rep-val').textContent=this.value+'x'" onchange="saveAudioSettings()"
+        style="width:100%;accent-color:var(--amber)">
+    </div>
+
+    <button onclick="toggleSettings()" style="width:100%;margin-top:16px;padding:10px;background:var(--espresso);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Kapat</button>
+  </div>
+</div>
+
+<!-- ALARM OVERLAY -->
+<div class="overlay" id="overlay">
+  <div class="alarm-box" id="alarm-box">
+    <div class="alarm-hd">
+      <div class="alarm-icon-big" id="al-icon">🔔</div>
+      <div class="alarm-area" id="al-area">—</div>
+      <div class="alarm-person-hd" id="al-person-hd"></div>
+    </div>
+    <div class="alarm-body">
+      <div class="alarm-info-row" id="al-info-row">
+        <div class="alarm-info-icon" id="al-info-icon">👤</div>
+        <div>
+          <div class="alarm-info-label">Sorumlu personel</div>
+          <div class="alarm-info-val" id="al-info-val">—</div>
+        </div>
+      </div>
+      <div class="alarm-warn" id="al-warn" style="display:none"></div>
+      <button class="btn-alarm-confirm" onclick="confirmAlarm()">✓ Kontrol Yapıldı</button>
+      <div class="alarm-queue-info" id="al-queue-info"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DAYS=['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+const DAYS_FULL=['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
+const ICONS=['☕','🧹','🚽','🪑','🍳','🪟','🗑️','🌿','🧽','🪣','🧴','🧻'];
+
+// --- STATE ---
+function defaultState(){
+  return {
+    staff:[
+      {id:1,name:'Ayşe K.'},{id:2,name:'Mehmet D.'},{id:3,name:'Zeynep T.'}
+    ],
+    weekSchedule:{
+      0:[],
+      1:[{id:101,staffId:1,shiftStart:'08:00',shiftEnd:'16:00'},{id:102,staffId:2,shiftStart:'12:00',shiftEnd:'20:00'}],
+      2:[{id:201,staffId:2,shiftStart:'08:00',shiftEnd:'16:00'},{id:202,staffId:3,shiftStart:'14:00',shiftEnd:'22:00'}],
+      3:[{id:301,staffId:1,shiftStart:'08:00',shiftEnd:'16:00'},{id:302,staffId:3,shiftStart:'12:00',shiftEnd:'20:00'}],
+      4:[{id:401,staffId:2,shiftStart:'08:00',shiftEnd:'16:00'},{id:402,staffId:1,shiftStart:'14:00',shiftEnd:'22:00'}],
+      5:[{id:501,staffId:1,shiftStart:'08:00',shiftEnd:'16:00'},{id:502,staffId:2,shiftStart:'12:00',shiftEnd:'20:00'},{id:503,staffId:3,shiftStart:'16:00',shiftEnd:'22:00'}],
+      6:[{id:601,staffId:3,shiftStart:'10:00',shiftEnd:'18:00'}]
+    },
+    areas:[
+      {id:1,name:'Bar Tezgahı',intervalMin:30},
+      {id:2,name:'Müşteri Tuvaleti',intervalMin:15},
+      {id:3,name:'Giriş & Vitrin',intervalMin:60},
+      {id:4,name:'Masa & Sandalyeler',intervalMin:45},
+      {id:5,name:'Mutfak',intervalMin:20},
+    ]
+  };
+}
+
+let state = JSON.parse(localStorage.getItem('bex_v3')||'null') || defaultState();
+for(let d=0;d<7;d++) if(!state.weekSchedule[d]) state.weekSchedule[d]=[];
+// ensure intervalMin exists, strip legacy staffId
+state.areas.forEach(a=>{ if(!a.intervalMin) a.intervalMin=30; delete a.staffId; });
+
+function save(){ localStorage.setItem('bex_v3',JSON.stringify(state)); }
+
+let nextId=2000;
+let activeTab='panel';
+let selectedDay=new Date().getDay();
+
+// Per-area timer state: {areaId: {deadline (ms timestamp), total (seconds)}}
+let timers={};
+
+// Fair rotation: per-area shuffled staff queue {areaId: [staffId, ...]}
+let rotationQueues={};
+
+// Alarm queue: [{areaId, assignedStaffId}]
+let alarmQueue=[];
+let alarmOpen=false;
+
+function saveTimers(){
+  const data={};
+  Object.entries(timers).forEach(([id,t])=>{ data[id]=t.deadline; });
+  localStorage.setItem('bex_timers',JSON.stringify(data));
+}
+
+function initTimers(){
+  const saved=JSON.parse(localStorage.getItem('bex_timers')||'{}');
+  const now=Date.now();
+  state.areas.forEach(a=>{
+    if(!timers[a.id]){
+      const sd=saved[a.id];
+      if(sd && sd>now){
+        timers[a.id]={deadline:sd, total:a.intervalMin*60};
+      } else {
+        timers[a.id]={deadline:now+a.intervalMin*60*1000, total:a.intervalMin*60};
+      }
+    }
+  });
+  Object.keys(timers).forEach(id=>{
+    if(!state.areas.find(a=>a.id===parseInt(id))) delete timers[id];
+  });
+  saveTimers();
+}
+
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+
+// Returns next fair staff pick for a given area
+function pickNext(areaId){
+  const activeIds=getActiveStaffIds();
+  const activeList=state.staff.filter(s=>activeIds.has(s.id));
+  if(activeList.length===0) return null;
+
+  let q=rotationQueues[areaId]||[];
+  // Filter out anyone no longer on shift, refill if empty
+  q=q.filter(id=>activeIds.has(id));
+  if(q.length===0) q=shuffle(activeList.map(s=>s.id));
+
+  const picked=q.shift();
+  rotationQueues[areaId]=q;
+  return picked;
+}
+
+// --- HELPERS ---
+function todayDayIndex(){ return new Date().getDay(); }
+function isOnShift(entry){
+  const now=new Date(), cur=now.getHours()*60+now.getMinutes();
+  const [sh,sm]=entry.shiftStart.split(':').map(Number);
+  const [eh,em]=entry.shiftEnd.split(':').map(Number);
+  const st=sh*60+sm,en=eh*60+em;
+  return en>st?(cur>=st&&cur<en):(cur>=st||cur<en);
+}
+function getActiveEntries(){
+  const today=todayDayIndex();
+  return (state.weekSchedule[today]||[]).filter(e=>isOnShift(e));
+}
+function getActiveStaffIds(){ return new Set(getActiveEntries().map(e=>e.staffId)); }
+function initials(n){ return n.split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2); }
+function pad(n){ return String(n).padStart(2,'0'); }
+function fmtSec(s){ return pad(Math.floor(s/60))+':'+pad(s%60); }
+function nowStr(){ const n=new Date(); return pad(n.getHours())+':'+pad(n.getMinutes()); }
+function iconFor(id){ const i=state.areas.findIndex(a=>a.id===id); return ICONS[i%ICONS.length]; }
+
+// --- AUDIO SETTINGS ---
+const SOUNDS = [
+  {id:'classic',   name:'Klasik Alarm',    desc:'Çift bip — standart uyarı',
+    play:(ctx,vol,rep)=>{
+      for(let r=0;r<rep;r++){
+        [0,.32].forEach(t=>{
+          const o=ctx.createOscillator(),g=ctx.createGain();
+          o.connect(g);g.connect(ctx.destination);
+          o.type='square';o.frequency.value=880;
+          const base=ctx.currentTime+r*.75+t;
+          g.gain.setValueAtTime(vol,base);
+          g.gain.exponentialRampToValueAtTime(.001,base+.28);
+          o.start(base);o.stop(base+.28);
+        });
+      }
+    }
+  },
+  {id:'coffee',    name:'Kahvehane Zili',  desc:'Yumuşak, net çan sesi',
+    play:(ctx,vol,rep)=>{
+      for(let r=0;r<rep;r++){
+        const o=ctx.createOscillator(),g=ctx.createGain();
+        o.connect(g);g.connect(ctx.destination);
+        o.type='sine';o.frequency.value=1047;
+        const base=ctx.currentTime+r*.9;
+        g.gain.setValueAtTime(vol*.8,base);
+        g.gain.exponentialRampToValueAtTime(.001,base+.7);
+        o.start(base);o.stop(base+.7);
+      }
+    }
+  },
+  {id:'urgent',    name:'Acil Uyarı',      desc:'Yükselen frekans, dikkat çekici',
+    play:(ctx,vol,rep)=>{
+      for(let r=0;r<rep;r++){
+        const o=ctx.createOscillator(),g=ctx.createGain();
+        o.connect(g);g.connect(ctx.destination);
+        o.type='sawtooth';
+        const base=ctx.currentTime+r*.6;
+        o.frequency.setValueAtTime(600,base);
+        o.frequency.linearRampToValueAtTime(1200,base+.45);
+        g.gain.setValueAtTime(vol,base);
+        g.gain.exponentialRampToValueAtTime(.001,base+.45);
+        o.start(base);o.stop(base+.45);
+      }
+    }
+  },
+  {id:'gentle',    name:'Nazik Uyarı',     desc:'Alçak, rahatsız etmeyen melodi',
+    play:(ctx,vol,rep)=>{
+      const notes=[523,659,784];
+      notes.forEach((freq,i)=>{
+        for(let r=0;r<rep;r++){
+          const o=ctx.createOscillator(),g=ctx.createGain();
+          o.connect(g);g.connect(ctx.destination);
+          o.type='sine';o.frequency.value=freq;
+          const base=ctx.currentTime+i*.22+r*(notes.length*.22+.4);
+          g.gain.setValueAtTime(0,base);
+          g.gain.linearRampToValueAtTime(vol*.6,base+.06);
+          g.gain.exponentialRampToValueAtTime(.001,base+.35);
+          o.start(base);o.stop(base+.35);
+        }
+      });
+    }
+  },
+  {id:'digital',   name:'Dijital Bip',     desc:'Retro elektronik sinyal',
+    play:(ctx,vol,rep)=>{
+      for(let r=0;r<rep;r++){
+        [0,.15,.3].forEach(t=>{
+          const o=ctx.createOscillator(),g=ctx.createGain();
+          o.connect(g);g.connect(ctx.destination);
+          o.type='square';o.frequency.value=1320;
+          const base=ctx.currentTime+r*.6+t;
+          g.gain.setValueAtTime(vol*.5,base);
+          g.gain.exponentialRampToValueAtTime(.001,base+.1);
+          o.start(base);o.stop(base+.1);
+        });
+      }
+    }
+  },
+  {id:'chime',     name:'Ahşap Çan',       desc:'Sıcak, derinlikli ksilofon',
+    play:(ctx,vol,rep)=>{
+      const seq=[523,440,392,523];
+      seq.forEach((freq,i)=>{
+        for(let r=0;r<rep;r++){
+          const o=ctx.createOscillator(),g=ctx.createGain();
+          o.connect(g);g.connect(ctx.destination);
+          o.type='triangle';o.frequency.value=freq;
+          const base=ctx.currentTime+i*.28+r*(seq.length*.28+.5);
+          g.gain.setValueAtTime(vol*.9,base);
+          g.gain.exponentialRampToValueAtTime(.001,base+.55);
+          o.start(base);o.stop(base+.55);
+        }
+      });
+    }
+  },
+  {id:'siren',     name:'Siren',           desc:'Alçalıp yükselen, sesli alarm',
+    play:(ctx,vol,rep)=>{
+      for(let r=0;r<rep;r++){
+        const o=ctx.createOscillator(),g=ctx.createGain();
+        o.connect(g);g.connect(ctx.destination);
+        o.type='sawtooth';
+        const base=ctx.currentTime+r*.9;
+        o.frequency.setValueAtTime(400,base);
+        o.frequency.linearRampToValueAtTime(900,base+.4);
+        o.frequency.linearRampToValueAtTime(400,base+.8);
+        g.gain.setValueAtTime(vol,base);
+        g.gain.setValueAtTime(vol,base+.79);
+        g.gain.exponentialRampToValueAtTime(.001,base+.85);
+        o.start(base);o.stop(base+.85);
+      }
+    }
+  },
+  {id:'fanfare',   name:'Fanfar',          desc:'Küçük trompet, başarı hissi',
+    play:(ctx,vol,rep)=>{
+      const seq=[523,659,784,1047];
+      seq.forEach((freq,i)=>{
+        for(let r=0;r<rep;r++){
+          const o=ctx.createOscillator(),g=ctx.createGain();
+          o.connect(g);g.connect(ctx.destination);
+          o.type='triangle';o.frequency.value=freq;
+          const base=ctx.currentTime+i*.14+r*(seq.length*.14+.5);
+          g.gain.setValueAtTime(vol*.7,base);
+          g.gain.exponentialRampToValueAtTime(.001,base+.28);
+          o.start(base);o.stop(base+.28);
+        }
+      });
+    }
+  },
+];
+
+let audioSettings = JSON.parse(localStorage.getItem('bex_audio')||'null') || {
+  enabled: true, volume: 0.7, soundId: 'classic', repeat: 3
+};
+function saveAudioSettings(){
+  audioSettings.enabled = document.getElementById('snd-enabled').checked;
+  audioSettings.volume  = parseInt(document.getElementById('snd-volume').value)/100;
+  audioSettings.repeat  = parseInt(document.getElementById('snd-repeat').value);
+  localStorage.setItem('bex_audio', JSON.stringify(audioSettings));
+}
+function selectSound(id){
+  audioSettings.soundId=id;
+  localStorage.setItem('bex_audio', JSON.stringify(audioSettings));
+  document.querySelectorAll('.snd-opt').forEach(el=>{
+    el.classList.toggle('selected', el.dataset.sid===id);
+  });
+  previewSound(id);
+}
+function previewSound(id){
+  const snd=SOUNDS.find(s=>s.id===id);
+  if(!snd) return;
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    snd.play(ctx, Math.max(audioSettings.volume||0.7, 0.15), 1);
+  }catch(e){}
+}
+function playAlarm(){
+  if(!audioSettings.enabled) return;
+  const snd=SOUNDS.find(s=>s.id===audioSettings.soundId)||SOUNDS[0];
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    snd.play(ctx, audioSettings.volume||0.7, audioSettings.repeat||3);
+  }catch(e){}
+}
+function buildSoundList(){
+  const list=document.getElementById('sound-list');
+  list.innerHTML=SOUNDS.map(s=>`
+    <div class="snd-opt${audioSettings.soundId===s.id?' selected':''}" data-sid="${s.id}" onclick="selectSound('${s.id}')">
+      <div class="snd-opt-info">
+        <div class="snd-opt-name">${s.name}</div>
+        <div class="snd-opt-desc">${s.desc}</div>
+      </div>
+      <button class="btn-preview" onclick="event.stopPropagation();previewSound('${s.id}')">▶ Dene</button>
+    </div>
+  `).join('');
+}
+function toggleSettings(){
+  const d=document.getElementById('settings-drawer');
+  const open=d.style.display==='none'||d.style.display==='';
+  d.style.display=open?'block':'none';
+  if(open){
+    document.getElementById('snd-enabled').checked=audioSettings.enabled!==false;
+    document.getElementById('snd-volume').value=Math.round((audioSettings.volume||0.7)*100);
+    document.getElementById('vol-val').textContent=Math.round((audioSettings.volume||0.7)*100)+'%';
+    document.getElementById('snd-repeat').value=audioSettings.repeat||3;
+    document.getElementById('rep-val').textContent=(audioSettings.repeat||3)+'x';
+    buildSoundList();
+  }
+}
+
+// --- MASTER TICK (every second) — deadline-based for iPad background resilience ---
+let lastTimerSave=0;
+function tickTimers(){
+  const now=Date.now();
+  state.areas.forEach(a=>{
+    const t=timers[a.id];
+    if(!t) return;
+    if(now>=t.deadline){
+      t.deadline=now+a.intervalMin*60*1000;
+      t.total=a.intervalMin*60;
+      queueAlarm(a.id);
+    }
+  });
+  if(now-lastTimerSave>30000){ saveTimers(); lastTimerSave=now; }
+  if(activeTab==='panel') updateTimerValues();
+}
+setInterval(tickTimers, 1000);
+
+// --- VISIBILITY CHANGE — recalculate when iPad wakes / app resumes ---
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'){
+    tickTimers();
+    saveTimers();
+    if(activeTab==='panel'){ renderTimerGrid(); renderActiveStaff(); }
+  }
+});
+
+// --- iOS AUDIO UNLOCK — Web Audio requires user gesture on iOS ---
+let audioUnlocked=false;
+function unlockAudio(){
+  if(audioUnlocked) return;
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const buf=ctx.createBuffer(1,1,22050);
+    const src=ctx.createBufferSource();
+    src.buffer=buf; src.connect(ctx.destination); src.start(0);
+    audioUnlocked=true;
+    setTimeout(()=>ctx.close(),100);
+  }catch(e){}
+}
+document.addEventListener('touchstart',unlockAudio,{once:true});
+document.addEventListener('click',unlockAudio,{once:true});
+
+// --- LIVE CLOCK ---
+function updateClock(){
+  const n=new Date();
+  document.getElementById('live-time').textContent=pad(n.getHours())+':'+pad(n.getMinutes())+':'+pad(n.getSeconds());
+}
+setInterval(updateClock,1000); updateClock();
+
+// --- ALARM QUEUE ---
+function queueAlarm(areaId){
+  const assignedStaffId=pickNext(areaId);
+  alarmQueue.push({areaId, assignedStaffId});
+  playAlarm();
+  if(!alarmOpen) showNextAlarm();
+}
+function showNextAlarm(){
+  if(alarmQueue.length===0){ alarmOpen=false; document.getElementById('overlay').classList.remove('show'); return; }
+  alarmOpen=true;
+  const {areaId, assignedStaffId}=alarmQueue[0];
+  const area=state.areas.find(a=>a.id===areaId);
+  if(!area){ alarmQueue.shift(); showNextAlarm(); return; }
+  const person=assignedStaffId ? state.staff.find(s=>s.id===assignedStaffId) : null;
+
+  document.getElementById('al-icon').textContent=iconFor(areaId);
+  document.getElementById('al-area').textContent=area.name;
+  document.getElementById('al-person-hd').textContent='Kontrol zamanı — '+nowStr();
+
+  const infoRow=document.getElementById('al-info-row');
+  const warn=document.getElementById('al-warn');
+  if(person){
+    infoRow.style.display='flex';
+    document.getElementById('al-info-icon').textContent='👤';
+    document.getElementById('al-info-val').textContent=person.name+' kontrol yapacak';
+    warn.style.display='none';
+  } else {
+    infoRow.style.display='none';
+    warn.style.display='block';
+    warn.textContent='Şu an vardiyada kimse yok.';
+  }
+
+  const remaining=alarmQueue.length-1;
+  document.getElementById('al-queue-info').textContent=
+    remaining>0?remaining+' alarm daha bekliyor':'';
+
+  document.getElementById('overlay').classList.add('show');
+}
+function confirmAlarm(){
+  alarmQueue.shift();
+  if(alarmQueue.length>0){
+    playAlarm();
+    showNextAlarm();
+  } else {
+    alarmOpen=false;
+    document.getElementById('overlay').classList.remove('show');
+  }
+}
+// --- PANEL ---
+function renderPanel(){
+  const today=todayDayIndex();
+  document.getElementById('panel-today-info').textContent=DAYS_FULL[today];
+  const active=getActiveEntries();
+  const badge=document.getElementById('active-badge');
+  badge.textContent=active.length>0?active.length+' kişi vardiyada':'Vardiyada kimse yok';
+  badge.className='badge '+(active.length>0?'badge-ok':'badge-warn');
+  renderTimerGrid();
+  renderActiveStaff();
+}
+
+function renderTimerGrid(){
+  const grid=document.getElementById('timer-grid');
+  if(!grid) return;
+  if(state.areas.length===0){
+    grid.innerHTML='<div style="grid-column:1/-1;padding:32px;text-align:center;color:var(--muted);font-size:13px">Henüz alan eklenmedi. "Alanlar" sekmesinden ekleyebilirsin.</div>';
+    return;
+  }
+  // Build the card shells (no live values yet)
+  grid.innerHTML=state.areas.map((a)=>{
+    const r=36, circ=(2*Math.PI*r).toFixed(1);
+    return `<div class="timer-card" id="tc-${a.id}">
+      <div class="tc-bell" id="bell-${a.id}">!</div>
+      <div class="tc-name" title="${a.name}">${a.name}</div>
+      <svg class="tc-svg" width="100" height="100" viewBox="0 0 100 100" style="margin-top:6px">
+        <circle cx="50" cy="50" r="${r}" fill="none" stroke="#F3EDE4" stroke-width="7"/>
+        <circle id="tcr-${a.id}" cx="50" cy="50" r="${r}" fill="none"
+          stroke="#D97B2A" stroke-width="7" stroke-linecap="round"
+          stroke-dasharray="${circ}" stroke-dashoffset="0"
+          transform="rotate(-90 50 50)"/>
+        <text id="tct-${a.id}" x="50" y="48" text-anchor="middle" dominant-baseline="middle"
+          font-family="'Segoe UI',system-ui,sans-serif" font-weight="700" font-size="18" fill="#1A0F08">--:--</text>
+        <text x="50" y="64" text-anchor="middle"
+          font-family="'Segoe UI',system-ui,sans-serif" font-size="8" fill="#7A6558">${a.intervalMin}dk'da bir</text>
+      </svg>
+      <div class="tc-actions">
+        <button class="btn-tc" onclick="resetTimer(${a.id})">↺ Sıfırla</button>
+        <button class="btn-tc btn-tc-alarm" onclick="testTimer(${a.id})">⚡</button>
+      </div>
+    </div>`;
+  }).join('');
+  // Immediately populate live values
+  updateTimerValues();
+}
+
+function updateTimerValues(){
+  const CIRC=2*Math.PI*36;
+  const now=Date.now();
+  state.areas.forEach(a=>{
+    const t=timers[a.id];
+    if(!t) return;
+    const remaining=Math.max(0,Math.ceil((t.deadline-now)/1000));
+    const ratio=remaining/t.total;
+    const urgent=ratio<0.1;
+    const color=ratio>0.4?'#D97B2A':ratio>0.15?'#BA5E10':'#A32D2D';
+    const hasAlarm=alarmQueue.includes(a.id);
+
+    const ring=document.getElementById('tcr-'+a.id);
+    const txt=document.getElementById('tct-'+a.id);
+    const card=document.getElementById('tc-'+a.id);
+    const bell=document.getElementById('bell-'+a.id);
+    if(!ring||!txt||!card) return;
+
+    ring.setAttribute('stroke-dashoffset',(CIRC*(1-ratio)).toFixed(1));
+    ring.setAttribute('stroke',color);
+    ring.className=urgent?'ring-urgent':'';
+    txt.textContent=fmtSec(remaining);
+    txt.setAttribute('fill','#1A0F08');
+    card.className='timer-card'+(urgent?' urgent':'');
+    if(bell) bell.className='tc-bell'+(hasAlarm?' show':'');
+  });
+}
+
+function renderActiveStaff(){
+  const active=getActiveEntries();
+  const list=document.getElementById('active-list');
+  if(!list) return;
+  if(active.length===0){ list.innerHTML='<div class="empty">Şu an vardiyada kimse yok</div>'; return; }
+  list.innerHTML=active.map(e=>{
+    const s=state.staff.find(x=>x.id===e.staffId)||{name:'?'};
+    return `<div class="staff-row">
+      <div class="avatar">${initials(s.name)}</div>
+      <div style="flex:1">
+        <div class="staff-nm">${s.name}</div>
+        <div class="staff-sh">${e.shiftStart} – ${e.shiftEnd}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function resetTimer(areaId){
+  const a=state.areas.find(x=>x.id===areaId);
+  if(!a) return;
+  timers[areaId]={deadline:Date.now()+a.intervalMin*60*1000, total:a.intervalMin*60};
+  saveTimers();
+  updateTimerValues();
+}
+function testTimer(areaId){ queueAlarm(areaId); }
+
+// --- DAY TABS ---
+function buildDayTabs(){
+  const today=todayDayIndex();
+  document.getElementById('day-tabs').innerHTML=DAYS.map((d,i)=>{
+    const cnt=state.weekSchedule[i].length;
+    return `<button class="day-tab${selectedDay===i?' active':''}${i===today?' today-tab':''}"
+      onclick="selectDay(${i})">${d}${cnt>0?' ('+cnt+')':''}</button>`;
+  }).join('');
+}
+function selectDay(d){ selectedDay=d; buildDayTabs(); renderShifts(); }
+
+// --- SHIFTS ---
+function renderShifts(){
+  const today=todayDayIndex(), entries=state.weekSchedule[selectedDay]||[];
+  document.getElementById('shift-day-title').textContent=DAYS_FULL[selectedDay]+(selectedDay===today?' (Bugün)':'');
+  const badge=document.getElementById('shift-day-badge');
+  badge.textContent=entries.length+' personel';
+  badge.className='badge '+(entries.length>0?'badge-ok':'badge-off');
+  document.getElementById('shift-tbody').innerHTML=entries.map(e=>{
+    const p=state.staff.find(s=>s.id===e.staffId);
+    const onNow=selectedDay===today&&isOnShift(e);
+    return `<tr>
+      <td><div style="display:flex;align-items:center;gap:8px">
+        <div style="width:26px;height:26px;border-radius:50%;background:#FFF3E0;border:2px solid #F5A84A;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#D97B2A;flex-shrink:0">${initials(p?p.name:'?')}</div>
+        <strong>${p?p.name:'(Silinmiş)'}</strong>
+      </div></td>
+      <td>${e.shiftStart}</td><td>${e.shiftEnd}</td>
+      <td>${selectedDay===today?`<span class="dot ${onNow?'dot-on':'dot-off'}"></span>${onNow?'Vardiyada':'Başlamadı/Bitti'}`:'<span style="color:#7A6558;font-size:12px">—</span>'}</td>
+      <td><div id="del-sh-${e.id}" style="display:flex;align-items:center;gap:5px">
+        <button class="btn-del" onclick="askDelShift(${e.id})">Kaldır</button>
+      </div></td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="5" style="text-align:center;color:#7A6558;padding:20px">Bu gün için vardiya eklenmemiş</td></tr>';
+  const addedIds=new Set(entries.map(e=>e.staffId));
+  document.getElementById('sh-staff').innerHTML='<option value="">— Seçiniz —</option>'+
+    state.staff.filter(s=>!addedIds.has(s.id)).map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+}
+function addShiftEntry(){
+  const staffId=parseInt(document.getElementById('sh-staff').value);
+  if(!staffId){alert('Personel seçiniz');return;}
+  state.weekSchedule[selectedDay].push({id:nextId++,staffId,shiftStart:document.getElementById('sh-start').value,shiftEnd:document.getElementById('sh-end').value});
+  save(); buildDayTabs(); renderShifts();
+}
+function askDelShift(id){
+  const wrap=document.getElementById('del-sh-'+id);
+  if(!wrap) return;
+  wrap.innerHTML=`<span style="font-size:11px;color:var(--danger)">Emin misin?</span>
+    <button class="btn-del" style="border-color:var(--danger);color:var(--danger)" onclick="deleteShiftEntry(${id})">Evet</button>
+    <button class="btn-del" onclick="renderShifts()">Hayır</button>`;
+}
+function deleteShiftEntry(id){
+  state.weekSchedule[selectedDay]=state.weekSchedule[selectedDay].filter(e=>e.id!==id);
+  save(); buildDayTabs(); renderShifts();
+}
+
+// --- AREAS ---
+function renderAreas(){
+  document.getElementById('areas-tbody').innerHTML=state.areas.map(a=>{
+    return `<tr>
+      <td><strong>${a.name}</strong></td>
+      <td><div class="interval-edit">
+        <input type="number" min="1" max="480" value="${a.intervalMin}" id="imin-${a.id}" style="width:60px">
+        <span style="font-size:12px;color:var(--muted)">dk</span>
+        <button class="interval-save" onclick="saveInterval(${a.id})">Kaydet</button>
+      </div></td>
+      <td><div id="del-ar-${a.id}"><button class="btn-del" onclick="askDelArea(${a.id})">Sil</button></div></td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="3" style="text-align:center;color:#7A6558;padding:20px">Henüz alan eklenmedi</td></tr>';
+
+  const badge=document.getElementById('area-count-badge');
+  badge.textContent=state.areas.length+' alan';
+  badge.className='badge '+(state.areas.length>0?'badge-ok':'badge-off');
+}
+function saveInterval(areaId){
+  const val=parseInt(document.getElementById('imin-'+areaId).value);
+  if(!val||val<1){alert('Geçerli bir değer giriniz');return;}
+  const a=state.areas.find(x=>x.id===areaId);
+  if(a){
+    a.intervalMin=val;
+    timers[areaId]={deadline:Date.now()+val*60*1000,total:val*60};
+    save(); saveTimers();
+    if(activeTab==='panel') renderTimerGrid();
+  }
+}
+function addArea(){
+  const name=document.getElementById('new-aname').value.trim();
+  const intervalMin=parseInt(document.getElementById('new-amin').value)||30;
+  if(!name){alert('Alan adı giriniz');return;}
+  const id=nextId++;
+  state.areas.push({id,name,intervalMin});
+  timers[id]={deadline:Date.now()+intervalMin*60*1000,total:intervalMin*60};
+  save(); saveTimers();
+  document.getElementById('new-aname').value='';
+  renderAreas();
+  renderTimerGrid();
+}
+function askDelArea(id){
+  const wrap=document.getElementById('del-ar-'+id);
+  if(!wrap) return;
+  wrap.innerHTML=`<span style="font-size:11px;color:var(--danger)">Emin misin?</span>
+    <button class="btn-del" style="border-color:var(--danger);color:var(--danger)" onclick="deleteArea(${id})">Evet</button>
+    <button class="btn-del" onclick="renderAreas()">Hayır</button>`;
+}
+function deleteArea(id){
+
+  state.areas=state.areas.filter(a=>a.id!==id);
+  delete timers[id];
+  delete rotationQueues[id];
+  alarmQueue=alarmQueue.filter(x=>x.areaId!==id);
+  save(); saveTimers(); renderAreas();
+  if(activeTab==='panel') renderTimerGrid();
+}
+
+// --- PERSONEL ---
+function renderPersonel(){
+  document.getElementById('personel-tbody').innerHTML=state.staff.map(s=>{
+    const days=Object.entries(state.weekSchedule).filter(([,e])=>e.some(x=>x.staffId===s.id)).map(([d])=>DAYS[parseInt(d)]).join(', ');
+    return `<tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div style="width:30px;height:30px;border-radius:50%;background:#FFF3E0;border:2px solid #F5A84A;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#D97B2A;flex-shrink:0">${initials(s.name)}</div>
+        <strong>${s.name}</strong>
+      </div></td>
+      <td style="font-size:12px;color:var(--muted)">${days||'—'}</td>
+      <td><div id="del-ps-${s.id}"><button class="btn-del" onclick="askDelPersonel(${s.id})">Sil</button></div></td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="3" style="text-align:center;color:#7A6558;padding:20px">Personel yok</td></tr>';
+  const badge=document.getElementById('personel-badge');
+  badge.textContent=state.staff.length+' personel';
+  badge.className='badge '+(state.staff.length>0?'badge-ok':'badge-off');
+}
+function addPersonel(){
+  const name=document.getElementById('new-pname').value.trim();
+  if(!name){alert('Ad giriniz');return;}
+  state.staff.push({id:nextId++,name}); save();
+  document.getElementById('new-pname').value='';
+  renderPersonel();
+}
+function askDelPersonel(id){
+  const wrap=document.getElementById('del-ps-'+id);
+  if(!wrap) return;
+  wrap.innerHTML=`<span style="font-size:11px;color:var(--danger)">Tüm vardiyadan silinir.</span>
+    <button class="btn-del" style="border-color:var(--danger);color:var(--danger)" onclick="deletePersonel(${id})">Evet</button>
+    <button class="btn-del" onclick="renderPersonel()">Hayır</button>`;
+}
+function deletePersonel(id){
+
+  state.staff=state.staff.filter(s=>s.id!==id);
+  for(let d=0;d<7;d++) state.weekSchedule[d]=state.weekSchedule[d].filter(e=>e.staffId!==id);
+  save(); renderPersonel();
+}
+
+// --- TABS ---
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const tab=btn.dataset.tab; activeTab=tab;
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('pane-'+tab).classList.add('active');
+    if(tab==='panel') renderPanel();
+    if(tab==='shifts'){buildDayTabs();renderShifts();}
+    if(tab==='areas') renderAreas();
+    if(tab==='personel') renderPersonel();
+  });
+});
+
+// --- INIT ---
+initTimers();
+renderPanel();
+setInterval(()=>{ if(activeTab==='panel') renderActiveStaff(); }, 60000);
+</script>
+</body>
+</html>
