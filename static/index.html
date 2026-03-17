@@ -168,9 +168,6 @@ tr:hover td{background:var(--cream)}
   </div>
   <nav class="tabs">
     <button class="tab-btn active" data-tab="panel">Kontrol Paneli</button>
-    <button class="tab-btn" data-tab="shifts">Haftalık Vardiya</button>
-    <button class="tab-btn" data-tab="areas">Alanlar</button>
-    <button class="tab-btn" data-tab="personel">Personel</button>
   </nav>
   <div class="clock-wrap">
     <span id="live-time" style="font-size:14px;font-weight:700;color:rgba(255,255,255,.9);font-variant-numeric:tabular-nums">--:--:--</span>
@@ -200,85 +197,6 @@ tr:hover td{background:var(--cream)}
           </div>
           <div id="active-list"></div>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- VARDİYA -->
-  <div id="pane-shifts" class="tab-pane">
-    <div class="day-tabs" id="day-tabs"></div>
-    <div class="card" style="overflow:hidden">
-      <div class="card-hd">
-        <span class="card-title" id="shift-day-title">—</span>
-        <span id="shift-day-badge" class="badge badge-off"></span>
-      </div>
-      <table>
-        <thead><tr><th>Personel</th><th>Giriş</th><th>Çıkış</th><th>Durum</th><th></th></tr></thead>
-        <tbody id="shift-tbody"></tbody>
-      </table>
-    </div>
-    <div class="add-form">
-      <div class="form-title">Bu Güne Personel Ekle</div>
-      <div class="form-row">
-        <div class="fg" style="flex:2;min-width:140px">
-          <label>Personel</label>
-          <select id="sh-staff"><option value="">— Seçiniz —</option></select>
-        </div>
-        <div class="fg"><label>Giriş</label><input type="time" id="sh-start" value="08:00"></div>
-        <div class="fg"><label>Çıkış</label><input type="time" id="sh-end" value="16:00"></div>
-        <button class="btn-add" onclick="addShiftEntry()">Ekle</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ALANLAR -->
-  <div id="pane-areas" class="tab-pane">
-    <div class="card" style="overflow:hidden">
-      <div class="card-hd">
-        <span class="card-title">Temizlik Alanları</span>
-        <span id="area-count-badge" class="badge badge-off"></span>
-      </div>
-      <table>
-        <thead><tr><th>Alan Adı</th><th>Kontrol Sıklığı</th><th></th></tr></thead>
-        <tbody id="areas-tbody"></tbody>
-      </table>
-    </div>
-    <div class="add-form">
-      <div class="form-title">Yeni Alan Ekle</div>
-      <div class="form-row">
-        <div class="fg" style="flex:2;min-width:140px">
-          <label>Alan Adı</label>
-          <input type="text" id="new-aname" placeholder="Ör: Bar Tezgahı">
-        </div>
-        <div class="fg" style="min-width:110px">
-          <label>Kontrol (dk)</label>
-          <input type="number" id="new-amin" value="30" min="1" max="480" style="width:100px">
-        </div>
-        <button class="btn-add" onclick="addArea()">Ekle</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- PERSONEL -->
-  <div id="pane-personel" class="tab-pane">
-    <div class="card" style="overflow:hidden">
-      <div class="card-hd">
-        <span class="card-title">Personel Listesi</span>
-        <span id="personel-badge" class="badge badge-off"></span>
-      </div>
-      <table>
-        <thead><tr><th>Ad Soyad</th><th>Vardiya Günleri</th><th></th></tr></thead>
-        <tbody id="personel-tbody"></tbody>
-      </table>
-    </div>
-    <div class="add-form">
-      <div class="form-title">Yeni Personel Ekle</div>
-      <div class="form-row">
-        <div class="fg" style="flex:1;min-width:180px">
-          <label>Ad Soyad</label>
-          <input type="text" id="new-pname" placeholder="Personel adı">
-        </div>
-        <button class="btn-add" onclick="addPersonel()">Ekle</button>
       </div>
     </div>
   </div>
@@ -360,41 +278,8 @@ const DAYS=['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
 const DAYS_FULL=['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
 const ICONS=['☕','🧹','🚽','🪑','🍳','🪟','🗑️','🌿','🧽','🪣','🧴','🧻'];
 
-// --- STATE ---
-function defaultState(){
-  return {
-    staff:[
-      {id:1,name:'Ayşe K.'},{id:2,name:'Mehmet D.'},{id:3,name:'Zeynep T.'}
-    ],
-    weekSchedule:{
-      0:[],
-      1:[{id:101,staffId:1,shiftStart:'08:00',shiftEnd:'16:00'},{id:102,staffId:2,shiftStart:'12:00',shiftEnd:'20:00'}],
-      2:[{id:201,staffId:2,shiftStart:'08:00',shiftEnd:'16:00'},{id:202,staffId:3,shiftStart:'14:00',shiftEnd:'22:00'}],
-      3:[{id:301,staffId:1,shiftStart:'08:00',shiftEnd:'16:00'},{id:302,staffId:3,shiftStart:'12:00',shiftEnd:'20:00'}],
-      4:[{id:401,staffId:2,shiftStart:'08:00',shiftEnd:'16:00'},{id:402,staffId:1,shiftStart:'14:00',shiftEnd:'22:00'}],
-      5:[{id:501,staffId:1,shiftStart:'08:00',shiftEnd:'16:00'},{id:502,staffId:2,shiftStart:'12:00',shiftEnd:'20:00'},{id:503,staffId:3,shiftStart:'16:00',shiftEnd:'22:00'}],
-      6:[{id:601,staffId:3,shiftStart:'10:00',shiftEnd:'18:00'}]
-    },
-    areas:[
-      {id:1,name:'Bar Tezgahı',intervalMin:30},
-      {id:2,name:'Müşteri Tuvaleti',intervalMin:15},
-      {id:3,name:'Giriş & Vitrin',intervalMin:60},
-      {id:4,name:'Masa & Sandalyeler',intervalMin:45},
-      {id:5,name:'Mutfak',intervalMin:20},
-    ]
-  };
-}
-
-let state = JSON.parse(localStorage.getItem('bex_v3')||'null') || defaultState();
-for(let d=0;d<7;d++) if(!state.weekSchedule[d]) state.weekSchedule[d]=[];
-// ensure intervalMin exists, strip legacy staffId
-state.areas.forEach(a=>{ if(!a.intervalMin) a.intervalMin=30; delete a.staffId; });
-
-function save(){ localStorage.setItem('bex_v3',JSON.stringify(state)); }
-
-let nextId=2000;
-let activeTab='panel';
-let selectedDay=new Date().getDay();
+// --- STATE (loaded from API) ---
+let state = { staff: [], areas: [], weekSchedule: {} };
 
 // Per-area timer state: {areaId: {deadline (ms timestamp), total (seconds)}}
 let timers={};
@@ -419,9 +304,9 @@ function initTimers(){
     if(!timers[a.id]){
       const sd=saved[a.id];
       if(sd && sd>now){
-        timers[a.id]={deadline:sd, total:a.intervalMin*60};
+        timers[a.id]={deadline:sd, total:a.interval_min*60};
       } else {
-        timers[a.id]={deadline:now+a.intervalMin*60*1000, total:a.intervalMin*60};
+        timers[a.id]={deadline:now+a.interval_min*60*1000, total:a.interval_min*60};
       }
     }
   });
@@ -668,13 +553,13 @@ function tickTimers(){
     const t=timers[a.id];
     if(!t) return;
     if(now>=t.deadline){
-      t.deadline=now+a.intervalMin*60*1000;
-      t.total=a.intervalMin*60;
+      t.deadline=now+a.interval_min*60*1000;
+      t.total=a.interval_min*60;
       queueAlarm(a.id);
     }
   });
   if(now-lastTimerSave>30000){ saveTimers(); lastTimerSave=now; }
-  if(activeTab==='panel') updateTimerValues();
+  updateTimerValues();
 }
 setInterval(tickTimers, 1000);
 
@@ -683,7 +568,8 @@ document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible'){
     tickTimers();
     saveTimers();
-    if(activeTab==='panel'){ renderTimerGrid(); renderActiveStaff(); }
+    renderTimerGrid();
+    renderActiveStaff();
   }
 });
 
@@ -749,7 +635,14 @@ function showNextAlarm(){
   document.getElementById('overlay').classList.add('show');
 }
 function confirmAlarm(){
-  alarmQueue.shift();
+  const item = alarmQueue.shift();
+  if (item) {
+    fetch('/api/logs', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({area_id: item.areaId, staff_id: item.assignedStaffId})
+    }).catch(()=>{});
+  }
   if(alarmQueue.length>0){
     playAlarm();
     showNextAlarm();
@@ -758,6 +651,7 @@ function confirmAlarm(){
     document.getElementById('overlay').classList.remove('show');
   }
 }
+
 // --- PANEL ---
 function renderPanel(){
   const today=todayDayIndex();
@@ -774,7 +668,7 @@ function renderTimerGrid(){
   const grid=document.getElementById('timer-grid');
   if(!grid) return;
   if(state.areas.length===0){
-    grid.innerHTML='<div style="grid-column:1/-1;padding:32px;text-align:center;color:var(--muted);font-size:13px">Henüz alan eklenmedi. "Alanlar" sekmesinden ekleyebilirsin.</div>';
+    grid.innerHTML='<div style="grid-column:1/-1;padding:32px;text-align:center;color:var(--muted);font-size:13px">Henüz alan eklenmedi.</div>';
     return;
   }
   // Build the card shells (no live values yet)
@@ -792,7 +686,7 @@ function renderTimerGrid(){
         <text id="tct-${a.id}" x="50" y="48" text-anchor="middle" dominant-baseline="middle"
           font-family="'Segoe UI',system-ui,sans-serif" font-weight="700" font-size="18" fill="#1A0F08">--:--</text>
         <text x="50" y="64" text-anchor="middle"
-          font-family="'Segoe UI',system-ui,sans-serif" font-size="8" fill="#7A6558">${a.intervalMin}dk'da bir</text>
+          font-family="'Segoe UI',system-ui,sans-serif" font-size="8" fill="#7A6558">${a.interval_min}dk'da bir</text>
       </svg>
       <div class="tc-actions">
         <button class="btn-tc" onclick="resetTimer(${a.id})">↺ Sıfırla</button>
@@ -852,182 +746,39 @@ function renderActiveStaff(){
 function resetTimer(areaId){
   const a=state.areas.find(x=>x.id===areaId);
   if(!a) return;
-  timers[areaId]={deadline:Date.now()+a.intervalMin*60*1000, total:a.intervalMin*60};
+  timers[areaId]={deadline:Date.now()+a.interval_min*60*1000, total:a.interval_min*60};
   saveTimers();
   updateTimerValues();
 }
 function testTimer(areaId){ queueAlarm(areaId); }
 
-// --- DAY TABS ---
-function buildDayTabs(){
-  const today=todayDayIndex();
-  document.getElementById('day-tabs').innerHTML=DAYS.map((d,i)=>{
-    const cnt=state.weekSchedule[i].length;
-    return `<button class="day-tab${selectedDay===i?' active':''}${i===today?' today-tab':''}"
-      onclick="selectDay(${i})">${d}${cnt>0?' ('+cnt+')':''}</button>`;
-  }).join('');
-}
-function selectDay(d){ selectedDay=d; buildDayTabs(); renderShifts(); }
-
-// --- SHIFTS ---
-function renderShifts(){
-  const today=todayDayIndex(), entries=state.weekSchedule[selectedDay]||[];
-  document.getElementById('shift-day-title').textContent=DAYS_FULL[selectedDay]+(selectedDay===today?' (Bugün)':'');
-  const badge=document.getElementById('shift-day-badge');
-  badge.textContent=entries.length+' personel';
-  badge.className='badge '+(entries.length>0?'badge-ok':'badge-off');
-  document.getElementById('shift-tbody').innerHTML=entries.map(e=>{
-    const p=state.staff.find(s=>s.id===e.staffId);
-    const onNow=selectedDay===today&&isOnShift(e);
-    return `<tr>
-      <td><div style="display:flex;align-items:center;gap:8px">
-        <div style="width:26px;height:26px;border-radius:50%;background:#FFF3E0;border:2px solid #F5A84A;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#D97B2A;flex-shrink:0">${initials(p?p.name:'?')}</div>
-        <strong>${p?p.name:'(Silinmiş)'}</strong>
-      </div></td>
-      <td>${e.shiftStart}</td><td>${e.shiftEnd}</td>
-      <td>${selectedDay===today?`<span class="dot ${onNow?'dot-on':'dot-off'}"></span>${onNow?'Vardiyada':'Başlamadı/Bitti'}`:'<span style="color:#7A6558;font-size:12px">—</span>'}</td>
-      <td><div id="del-sh-${e.id}" style="display:flex;align-items:center;gap:5px">
-        <button class="btn-del" onclick="askDelShift(${e.id})">Kaldır</button>
-      </div></td>
-    </tr>`;
-  }).join('')||'<tr><td colspan="5" style="text-align:center;color:#7A6558;padding:20px">Bu gün için vardiya eklenmemiş</td></tr>';
-  const addedIds=new Set(entries.map(e=>e.staffId));
-  document.getElementById('sh-staff').innerHTML='<option value="">— Seçiniz —</option>'+
-    state.staff.filter(s=>!addedIds.has(s.id)).map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
-}
-function addShiftEntry(){
-  const staffId=parseInt(document.getElementById('sh-staff').value);
-  if(!staffId){alert('Personel seçiniz');return;}
-  state.weekSchedule[selectedDay].push({id:nextId++,staffId,shiftStart:document.getElementById('sh-start').value,shiftEnd:document.getElementById('sh-end').value});
-  save(); buildDayTabs(); renderShifts();
-}
-function askDelShift(id){
-  const wrap=document.getElementById('del-sh-'+id);
-  if(!wrap) return;
-  wrap.innerHTML=`<span style="font-size:11px;color:var(--danger)">Emin misin?</span>
-    <button class="btn-del" style="border-color:var(--danger);color:var(--danger)" onclick="deleteShiftEntry(${id})">Evet</button>
-    <button class="btn-del" onclick="renderShifts()">Hayır</button>`;
-}
-function deleteShiftEntry(id){
-  state.weekSchedule[selectedDay]=state.weekSchedule[selectedDay].filter(e=>e.id!==id);
-  save(); buildDayTabs(); renderShifts();
-}
-
-// --- AREAS ---
-function renderAreas(){
-  document.getElementById('areas-tbody').innerHTML=state.areas.map(a=>{
-    return `<tr>
-      <td><strong>${a.name}</strong></td>
-      <td><div class="interval-edit">
-        <input type="number" min="1" max="480" value="${a.intervalMin}" id="imin-${a.id}" style="width:60px">
-        <span style="font-size:12px;color:var(--muted)">dk</span>
-        <button class="interval-save" onclick="saveInterval(${a.id})">Kaydet</button>
-      </div></td>
-      <td><div id="del-ar-${a.id}"><button class="btn-del" onclick="askDelArea(${a.id})">Sil</button></div></td>
-    </tr>`;
-  }).join('')||'<tr><td colspan="3" style="text-align:center;color:#7A6558;padding:20px">Henüz alan eklenmedi</td></tr>';
-
-  const badge=document.getElementById('area-count-badge');
-  badge.textContent=state.areas.length+' alan';
-  badge.className='badge '+(state.areas.length>0?'badge-ok':'badge-off');
-}
-function saveInterval(areaId){
-  const val=parseInt(document.getElementById('imin-'+areaId).value);
-  if(!val||val<1){alert('Geçerli bir değer giriniz');return;}
-  const a=state.areas.find(x=>x.id===areaId);
-  if(a){
-    a.intervalMin=val;
-    timers[areaId]={deadline:Date.now()+val*60*1000,total:val*60};
-    save(); saveTimers();
-    if(activeTab==='panel') renderTimerGrid();
+// --- STATE LOADING (from API) ---
+async function loadState() {
+  try {
+    const [areasRes, staffRes, shiftsRes] = await Promise.all([
+      fetch('/api/areas').then(r => r.json()),
+      fetch('/api/staff/active').then(r => r.json()),
+      fetch('/api/shifts/today').then(r => r.json()),
+    ]);
+    state.areas = areasRes;
+    state.staff = staffRes;
+    const today = todayDayIndex();
+    state.weekSchedule = {};
+    for (let d = 0; d < 7; d++) state.weekSchedule[d] = [];
+    state.weekSchedule[today] = shiftsRes.map(s => ({
+      id: s.id, staffId: s.staff_id,
+      shiftStart: s.shift_start, shiftEnd: s.shift_end
+    }));
+    initTimers();
+    renderPanel();
+  } catch(e) {
+    console.error('Veri yuklenemedi:', e);
   }
 }
-function addArea(){
-  const name=document.getElementById('new-aname').value.trim();
-  const intervalMin=parseInt(document.getElementById('new-amin').value)||30;
-  if(!name){alert('Alan adı giriniz');return;}
-  const id=nextId++;
-  state.areas.push({id,name,intervalMin});
-  timers[id]={deadline:Date.now()+intervalMin*60*1000,total:intervalMin*60};
-  save(); saveTimers();
-  document.getElementById('new-aname').value='';
-  renderAreas();
-  renderTimerGrid();
-}
-function askDelArea(id){
-  const wrap=document.getElementById('del-ar-'+id);
-  if(!wrap) return;
-  wrap.innerHTML=`<span style="font-size:11px;color:var(--danger)">Emin misin?</span>
-    <button class="btn-del" style="border-color:var(--danger);color:var(--danger)" onclick="deleteArea(${id})">Evet</button>
-    <button class="btn-del" onclick="renderAreas()">Hayır</button>`;
-}
-function deleteArea(id){
-
-  state.areas=state.areas.filter(a=>a.id!==id);
-  delete timers[id];
-  delete rotationQueues[id];
-  alarmQueue=alarmQueue.filter(x=>x.areaId!==id);
-  save(); saveTimers(); renderAreas();
-  if(activeTab==='panel') renderTimerGrid();
-}
-
-// --- PERSONEL ---
-function renderPersonel(){
-  document.getElementById('personel-tbody').innerHTML=state.staff.map(s=>{
-    const days=Object.entries(state.weekSchedule).filter(([,e])=>e.some(x=>x.staffId===s.id)).map(([d])=>DAYS[parseInt(d)]).join(', ');
-    return `<tr>
-      <td><div style="display:flex;align-items:center;gap:10px">
-        <div style="width:30px;height:30px;border-radius:50%;background:#FFF3E0;border:2px solid #F5A84A;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#D97B2A;flex-shrink:0">${initials(s.name)}</div>
-        <strong>${s.name}</strong>
-      </div></td>
-      <td style="font-size:12px;color:var(--muted)">${days||'—'}</td>
-      <td><div id="del-ps-${s.id}"><button class="btn-del" onclick="askDelPersonel(${s.id})">Sil</button></div></td>
-    </tr>`;
-  }).join('')||'<tr><td colspan="3" style="text-align:center;color:#7A6558;padding:20px">Personel yok</td></tr>';
-  const badge=document.getElementById('personel-badge');
-  badge.textContent=state.staff.length+' personel';
-  badge.className='badge '+(state.staff.length>0?'badge-ok':'badge-off');
-}
-function addPersonel(){
-  const name=document.getElementById('new-pname').value.trim();
-  if(!name){alert('Ad giriniz');return;}
-  state.staff.push({id:nextId++,name}); save();
-  document.getElementById('new-pname').value='';
-  renderPersonel();
-}
-function askDelPersonel(id){
-  const wrap=document.getElementById('del-ps-'+id);
-  if(!wrap) return;
-  wrap.innerHTML=`<span style="font-size:11px;color:var(--danger)">Tüm vardiyadan silinir.</span>
-    <button class="btn-del" style="border-color:var(--danger);color:var(--danger)" onclick="deletePersonel(${id})">Evet</button>
-    <button class="btn-del" onclick="renderPersonel()">Hayır</button>`;
-}
-function deletePersonel(id){
-
-  state.staff=state.staff.filter(s=>s.id!==id);
-  for(let d=0;d<7;d++) state.weekSchedule[d]=state.weekSchedule[d].filter(e=>e.staffId!==id);
-  save(); renderPersonel();
-}
-
-// --- TABS ---
-document.querySelectorAll('.tab-btn').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    const tab=btn.dataset.tab; activeTab=tab;
-    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-    document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('pane-'+tab).classList.add('active');
-    if(tab==='panel') renderPanel();
-    if(tab==='shifts'){buildDayTabs();renderShifts();}
-    if(tab==='areas') renderAreas();
-    if(tab==='personel') renderPersonel();
-  });
-});
 
 // --- INIT ---
-initTimers();
-renderPanel();
-setInterval(()=>{ if(activeTab==='panel') renderActiveStaff(); }, 60000);
+loadState();
+setInterval(loadState, 300000); // Refresh every 5 min
 </script>
 </body>
 </html>
