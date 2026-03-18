@@ -436,6 +436,9 @@ let alarmOpen = false;
 // Log data
 let logData = [];
 
+// SQLite returns "2026-03-18 00:48:12", JS needs "2026-03-18T00:48:12"
+function parseTS(s) { return new Date(s ? s.replace(' ', 'T') : 0); }
+
 // ==================== TAB SWITCHING ====================
 function switchTab(tab) {
     activeTab = tab;
@@ -1048,14 +1051,14 @@ function renderLogs() {
         tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Bu tarihte log yok</td></tr>';
     } else {
         tbody.innerHTML = logData.map(l => {
-            const t = new Date(l.alarm_time + 'Z');
+            const t = parseTS(l.alarm_time);
             const saat = t.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
             const durum = l.action === 'checked'
                 ? '<span style="color:var(--success)">Yap\u0131ld\u0131</span>'
                 : '<span style="color:var(--danger)">Ka\u00e7\u0131r\u0131ld\u0131</span>';
             let onaySuresi = '-';
             if (l.confirmed_at && l.alarm_time) {
-                const diff = Math.round((new Date(l.confirmed_at + 'Z') - new Date(l.alarm_time + 'Z')) / 1000);
+                const diff = Math.round((parseTS(l.confirmed_at) - parseTS(l.alarm_time)) / 1000);
                 onaySuresi = diff < 60 ? diff + 'sn' : Math.round(diff / 60) + 'dk';
             }
             return `<tr><td>${saat}</td><td>${l.area_name || '-'}</td><td>${l.staff_name || '-'}</td><td>${durum}</td><td>${onaySuresi}</td></tr>`;
@@ -1071,10 +1074,10 @@ function exportCSV() {
     if (!logData.length) return;
     const header = 'Saat,Alan,Personel,Durum,Onay Suresi\n';
     const rows = logData.map(l => {
-        const t = new Date(l.alarm_time + 'Z').toLocaleString('tr-TR');
+        const t = parseTS(l.alarm_time).toLocaleString('tr-TR');
         let onaySuresi = '-';
         if (l.confirmed_at && l.alarm_time) {
-            const diff = Math.round((new Date(l.confirmed_at + 'Z') - new Date(l.alarm_time + 'Z')) / 1000);
+            const diff = Math.round((parseTS(l.confirmed_at) - parseTS(l.alarm_time)) / 1000);
             onaySuresi = diff < 60 ? diff + 'sn' : Math.round(diff / 60) + 'dk';
         }
         return `${t},${l.area_name || '-'},${l.staff_name || '-'},${l.action === 'checked' ? 'Yapildi' : 'Kacirildi'},${onaySuresi}`;
