@@ -20,10 +20,11 @@
   --text:#1A0F08;--muted:#7A6558;--border:#E0D5C8;
   --success:#27600A;--success-bg:#EAF3DE;--danger:#A32D2D;--danger-bg:#FCEBEB;
 }
-body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
 
 /* HEADER */
 .header{background:var(--espresso);display:flex;align-items:stretch;flex-shrink:0;height:56px;overflow-x:auto}
+@media(max-width:480px){.header{height:48px}.brand{padding:0 10px;gap:6px}.brand-logo{width:24px;height:24px;font-size:10px}.brand-text{font-size:12px}.brand-sub{display:none}.tab-btn{padding:0 10px;font-size:11px}.clock-wrap{padding:0 10px}#live-time{font-size:12px}}
 .brand{padding:0 18px;display:flex;align-items:center;gap:10px;border-right:1px solid rgba(255,255,255,.1);flex-shrink:0}
 .brand-logo{width:30px;height:30px;background:var(--amber);border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#fff;flex-shrink:0}
 .brand-text{font-size:14px;font-weight:600;color:#fff;line-height:1}
@@ -35,7 +36,8 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .clock-wrap{padding:0 16px;display:flex;align-items:center;gap:6px;border-left:1px solid rgba(255,255,255,.1);flex-shrink:0}
 #live-time{font-size:14px;font-weight:700;color:rgba(255,255,255,.9);font-variant-numeric:tabular-nums}
 
-.content{flex:1;padding:20px;max-width:1100px;margin:0 auto;width:100%}
+.content{flex:1;padding:16px;max-width:1100px;margin:0 auto;width:100%}
+@media(max-width:480px){.content{padding:10px}}
 .tab-pane{display:none}.tab-pane.active{display:block}
 
 /* PANEL — multi-timer grid */
@@ -43,6 +45,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .panel-title{font-size:15px;font-weight:700}
 .today-info{font-size:12px;color:var(--muted)}
 .timer-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:14px}
+@media(max-width:480px){.timer-grid{grid-template-columns:repeat(2,1fr);gap:8px}}
 
 /* TIMER CARD */
 .timer-card{background:var(--card);border-radius:14px;border:1.5px solid var(--border);padding:14px 10px 12px;text-align:center;position:relative;transition:border-color .2s}
@@ -51,6 +54,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .timer-card.inactive{opacity:.45}
 .tc-name{font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tc-svg{display:block;margin:0 auto}
+@media(max-width:480px){.tc-svg{width:75px;height:75px}.timer-card{padding:10px 6px 8px;border-radius:10px}}
 .tc-time{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;fill:var(--text)}
 .tc-sub{font-size:8px;fill:var(--muted)}
 .tc-interval{font-size:10px;color:var(--muted);margin-top:7px}
@@ -62,10 +66,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 
 /* PANEL — active staff side */
 .panel-layout{display:grid;grid-template-columns:1fr 240px;gap:18px;align-items:start}
-@media(max-width:720px){.panel-layout{grid-template-columns:1fr}}
+@media(max-width:720px){.panel-layout{grid-template-columns:1fr;gap:10px}}
 
 /* ACTIVE STAFF CARD */
 .card{background:var(--card);border-radius:12px;border:1px solid var(--border);overflow:hidden}
+@media(max-width:480px){.card{overflow-x:auto}.form-row{flex-direction:column}}
 .card-hd{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .card-title{font-size:13px;font-weight:600}
 .badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
