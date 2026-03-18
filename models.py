@@ -57,6 +57,7 @@ class ShiftOut(BaseModel):
 class LogCreate(BaseModel):
     area_id: int
     staff_id: Optional[int] = None
+    alarm_time: Optional[str] = None
 
 
 class LogOut(BaseModel):

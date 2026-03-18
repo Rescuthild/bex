@@ -140,13 +140,14 @@ def shifts_today():
 async def create_public_log(body: LogCreate):
     """Create a 'checked' log entry from the public panel."""
     confirmed_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    alarm_time = body.alarm_time or confirmed_at
     with get_db() as db:
         cur = db.execute(
             """
-            INSERT INTO logs (area_id, staff_id, action, confirmed_at)
-            VALUES (?, ?, 'checked', ?)
+            INSERT INTO logs (area_id, staff_id, action, alarm_time, confirmed_at)
+            VALUES (?, ?, 'checked', ?, ?)
             """,
-            (body.area_id, body.staff_id, confirmed_at),
+            (body.area_id, body.staff_id, alarm_time, confirmed_at),
         )
         log_id = cur.lastrowid
         row = db.execute(

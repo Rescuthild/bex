@@ -599,7 +599,7 @@ setInterval(updateClock,1000); updateClock();
 // --- ALARM QUEUE ---
 function queueAlarm(areaId){
     const assignedStaffId = pickNext(areaId);
-    alarmQueue.push({areaId, assignedStaffId});
+    alarmQueue.push({areaId, assignedStaffId, alarmTime: new Date().toISOString()});
     playAlarm();
     // Notify admin via WebSocket
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -653,7 +653,7 @@ function confirmAlarm(){
     fetch('/api/logs', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({area_id: item.areaId, staff_id: item.assignedStaffId})
+      body: JSON.stringify({area_id: item.areaId, staff_id: item.assignedStaffId, alarm_time: item.alarmTime})
     }).catch(()=>{});
   }
   if(alarmQueue.length>0){
