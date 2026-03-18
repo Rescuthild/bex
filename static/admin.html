@@ -437,7 +437,7 @@ let alarmOpen = false;
 let logData = [];
 
 // SQLite returns "2026-03-18 00:48:12", JS needs "2026-03-18T00:48:12"
-function parseTS(s) { return new Date(s ? s.replace(' ', 'T') : 0); }
+function parseTS(s) { if(!s) return new Date(0); s=s.replace(' ','T'); if(!s.endsWith('Z')&&!s.includes('+')) s+='Z'; return new Date(s); }
 
 // ==================== TAB SWITCHING ====================
 function switchTab(tab) {
