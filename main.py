@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from database import get_db, init_db
+from database import get_db, init_db, migrate_db
 from models import (
     AreaCreate, AreaOut, AreaUpdate,
     LogCreate, LogOut,
@@ -27,6 +27,7 @@ def verify_token(token: str):
 @app.on_event("startup")
 def on_startup():
     init_db()
+    migrate_db()
 
 
 # ═══════════════════════════════════════════════════════
@@ -51,7 +52,7 @@ def admin_page(token: str):
 @app.get("/api/areas", response_model=list[AreaOut])
 def list_areas():
     with get_db() as db:
-        rows = db.execute("SELECT id, name, interval_min FROM areas ORDER BY id").fetchall()
+        rows = db.execute("SELECT id, name, interval_min, delay_threshold_min FROM areas ORDER BY id").fetchall()
     return [dict(r) for r in rows]
 
 
@@ -134,7 +135,7 @@ def create_public_log(body: LogCreate):
 def admin_list_areas(token: str):
     verify_token(token)
     with get_db() as db:
-        rows = db.execute("SELECT id, name, interval_min FROM areas ORDER BY id").fetchall()
+        rows = db.execute("SELECT id, name, interval_min, delay_threshold_min FROM areas ORDER BY id").fetchall()
     return [dict(r) for r in rows]
 
 
@@ -143,27 +144,28 @@ def admin_create_area(token: str, body: AreaCreate):
     verify_token(token)
     with get_db() as db:
         cur = db.execute(
-            "INSERT INTO areas (name, interval_min) VALUES (?, ?)",
-            (body.name, body.interval_min),
+            "INSERT INTO areas (name, interval_min, delay_threshold_min) VALUES (?, ?, ?)",
+            (body.name, body.interval_min, body.delay_threshold_min),
         )
         area_id = cur.lastrowid
-    return {"id": area_id, "name": body.name, "interval_min": body.interval_min}
+    return {"id": area_id, "name": body.name, "interval_min": body.interval_min, "delay_threshold_min": body.delay_threshold_min}
 
 
 @app.patch("/api/admin/{token}/areas/{area_id}", response_model=AreaOut)
 def admin_update_area(token: str, area_id: int, body: AreaUpdate):
     verify_token(token)
     with get_db() as db:
-        existing = db.execute("SELECT id, name, interval_min FROM areas WHERE id = ?", (area_id,)).fetchone()
+        existing = db.execute("SELECT id, name, interval_min, delay_threshold_min FROM areas WHERE id = ?", (area_id,)).fetchone()
         if not existing:
             raise HTTPException(status_code=404, detail="Area not found")
         new_name = body.name if body.name is not None else existing["name"]
         new_interval = body.interval_min if body.interval_min is not None else existing["interval_min"]
+        new_delay = body.delay_threshold_min if body.delay_threshold_min is not None else existing["delay_threshold_min"]
         db.execute(
-            "UPDATE areas SET name = ?, interval_min = ? WHERE id = ?",
-            (new_name, new_interval, area_id),
+            "UPDATE areas SET name = ?, interval_min = ?, delay_threshold_min = ? WHERE id = ?",
+            (new_name, new_interval, new_delay, area_id),
         )
-    return {"id": area_id, "name": new_name, "interval_min": new_interval}
+    return {"id": area_id, "name": new_name, "interval_min": new_interval, "delay_threshold_min": new_delay}
 
 
 @app.delete("/api/admin/{token}/areas/{area_id}", status_code=204)

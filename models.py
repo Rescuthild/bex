@@ -7,17 +7,20 @@ from pydantic import BaseModel
 class AreaCreate(BaseModel):
     name: str
     interval_min: int = 30
+    delay_threshold_min: int = 5
 
 
 class AreaUpdate(BaseModel):
     name: Optional[str] = None
     interval_min: Optional[int] = None
+    delay_threshold_min: Optional[int] = None
 
 
 class AreaOut(BaseModel):
     id: int
     name: str
     interval_min: int
+    delay_threshold_min: int
 
 
 # ── Staff ──────────────────────────────────────────────

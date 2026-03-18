@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS areas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     interval_min INTEGER NOT NULL DEFAULT 30,
+    delay_threshold_min INTEGER NOT NULL DEFAULT 5,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE TABLE IF NOT EXISTS staff (
@@ -47,6 +48,14 @@ def init_db():
     """Create tables if they don't exist."""
     with get_db() as db:
         db.executescript(SCHEMA)
+
+
+def migrate_db():
+    """Run schema migrations for existing databases."""
+    with get_db() as db:
+        cols = [row[1] for row in db.execute("PRAGMA table_info(areas)").fetchall()]
+        if "delay_threshold_min" not in cols:
+            db.execute("ALTER TABLE areas ADD COLUMN delay_threshold_min INTEGER NOT NULL DEFAULT 5")
 
 
 @contextmanager
