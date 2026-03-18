@@ -1183,6 +1183,7 @@ function connectWS() {
                     confirmed_at: new Date(msg.confirmed_at.includes('Z') ? msg.confirmed_at : msg.confirmed_at + 'Z')
                 };
                 if (activeTab === 'live') renderLiveGrid();
+                if (activeTab === 'logs') loadLogs();
             }
         } catch(err) {}
     };
