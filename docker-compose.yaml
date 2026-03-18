@@ -1,0 +1,12 @@
+services:
+  bex:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_PATH=/app/data/bex.db
+    volumes:
+      - bex-data:/app/data
+
+volumes:
+  bex-data:
