@@ -198,7 +198,6 @@ tr:hover td{background:var(--cream)}
   </nav>
   <div class="clock-wrap">
     <span id="live-time" style="font-size:14px;font-weight:700;color:rgba(255,255,255,.9);font-variant-numeric:tabular-nums">--:--:--</span>
-    <button onclick="toggleSettings()" style="margin-left:10px;padding:5px 10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:7px;color:rgba(255,255,255,.8);font-size:12px;cursor:pointer;white-space:nowrap" id="settings-btn">&#9881; Ses</button>
   </div>
 </header>
 
@@ -395,28 +394,7 @@ tr:hover td{background:var(--cream)}
   </div>
 </div>
 
-<!-- ALARM OVERLAY -->
-<div class="overlay" id="overlay">
-  <div class="alarm-box" id="alarm-box">
-    <div class="alarm-hd">
-      <div class="alarm-icon-big" id="al-icon">&#128276;</div>
-      <div class="alarm-area" id="al-area">&#8212;</div>
-      <div class="alarm-person-hd" id="al-person-hd"></div>
-    </div>
-    <div class="alarm-body">
-      <div class="alarm-info-row" id="al-info-row">
-        <div class="alarm-info-icon" id="al-info-icon">&#128100;</div>
-        <div>
-          <div class="alarm-info-label">Sorumlu personel</div>
-          <div class="alarm-info-val" id="al-info-val">&#8212;</div>
-        </div>
-      </div>
-      <div class="alarm-warn" id="al-warn" style="display:none"></div>
-      <button class="btn-alarm-confirm" onclick="confirmAlarm()">&#10003; Kontrol Yapildi</button>
-      <div class="alarm-queue-info" id="al-queue-info"></div>
-    </div>
-  </div>
-</div>
+<!-- Alarm overlay disabled for admin — monitoring only -->
 
 <script>
 // ==================== ADMIN TOKEN & API ====================
@@ -733,7 +711,6 @@ function tickTimers() {
         if (now >= t.deadline) {
             t.deadline = now + a.interval_min * 60 * 1000;
             t.total = a.interval_min * 60;
-            queueAlarm(a.id);
         }
     });
     if (now - lastTimerSave > 30000) { saveTimers(); lastTimerSave = now; }
@@ -775,60 +752,11 @@ function updateClock() {
 setInterval(updateClock, 1000); updateClock();
 
 // ==================== ALARM QUEUE ====================
-function queueAlarm(areaId) {
-    const assignedStaffId = pickNext(areaId);
-    alarmQueue.push({ areaId, assignedStaffId });
-    playAlarm();
-    if (!alarmOpen) showNextAlarm();
-}
-function showNextAlarm() {
-    if (alarmQueue.length === 0) { alarmOpen = false; document.getElementById('overlay').classList.remove('show'); return; }
-    alarmOpen = true;
-    const { areaId, assignedStaffId } = alarmQueue[0];
-    const area = state.areas.find(a => a.id === areaId);
-    if (!area) { alarmQueue.shift(); showNextAlarm(); return; }
-    const person = assignedStaffId ? state.staff.find(s => s.id === assignedStaffId) : null;
-
-    document.getElementById('al-icon').textContent = iconFor(areaId);
-    document.getElementById('al-area').textContent = area.name;
-    document.getElementById('al-person-hd').textContent = 'Kontrol zaman\u0131 \u2014 ' + nowStr();
-
-    const infoRow = document.getElementById('al-info-row');
-    const warn = document.getElementById('al-warn');
-    if (person) {
-        infoRow.style.display = 'flex';
-        document.getElementById('al-info-icon').textContent = '\ud83d\udc64';
-        document.getElementById('al-info-val').textContent = person.name + ' kontrol yapacak';
-        warn.style.display = 'none';
-    } else {
-        infoRow.style.display = 'none';
-        warn.style.display = 'block';
-        warn.textContent = '\u015eu an vardiyada kimse yok.';
-    }
-
-    const remaining = alarmQueue.length - 1;
-    document.getElementById('al-queue-info').textContent =
-        remaining > 0 ? remaining + ' alarm daha bekliyor' : '';
-
-    document.getElementById('overlay').classList.add('show');
-}
-function confirmAlarm() {
-    const item = alarmQueue.shift();
-    if (item) {
-        fetch('/api/logs', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ area_id: item.areaId, staff_id: item.assignedStaffId })
-        }).catch(() => {});
-    }
-    if (alarmQueue.length > 0) {
-        playAlarm();
-        showNextAlarm();
-    } else {
-        alarmOpen = false;
-        document.getElementById('overlay').classList.remove('show');
-    }
-}
+// Alarm functions disabled for admin — admin is monitoring only
+function queueAlarm(areaId) {}
+function showNextAlarm() {}
+function confirmAlarm() {}
+function testTimer(areaId) {}
 
 // ==================== PANEL (Tab 1) ====================
 function renderPanel() {
@@ -867,7 +795,6 @@ function renderTimerGrid() {
           </svg>
           <div class="tc-actions">
             <button class="btn-tc" onclick="resetTimer(${a.id})">&#8634; S\u0131f\u0131rla</button>
-            <button class="btn-tc btn-tc-alarm" onclick="testTimer(${a.id})">&#9889;</button>
           </div>
         </div>`;
     }).join('');
@@ -925,7 +852,6 @@ function resetTimer(areaId) {
     saveTimers();
     updateTimerValues();
 }
-function testTimer(areaId) { queueAlarm(areaId); }
 
 // ==================== SHIFTS (Tab 2) ====================
 function renderShifts() {
