@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
@@ -139,8 +139,10 @@ def shifts_today():
 @app.post("/api/logs", response_model=LogOut)
 async def create_public_log(body: LogCreate):
     """Create a 'checked' log entry from the public panel."""
-    confirmed_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    alarm_time = body.alarm_time or confirmed_at
+    now = datetime.now(timezone.utc)
+    confirmed_at = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+    alarm_dt = now - timedelta(seconds=max(body.elapsed_seconds or 0, 0))
+    alarm_time = alarm_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
     with get_db() as db:
         cur = db.execute(
             """
