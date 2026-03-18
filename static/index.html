@@ -598,10 +598,23 @@ setInterval(updateClock,1000); updateClock();
 
 // --- ALARM QUEUE ---
 function queueAlarm(areaId){
-  const assignedStaffId=pickNext(areaId);
-  alarmQueue.push({areaId, assignedStaffId});
-  playAlarm();
-  if(!alarmOpen) showNextAlarm();
+    const assignedStaffId = pickNext(areaId);
+    alarmQueue.push({areaId, assignedStaffId});
+    playAlarm();
+    // Notify admin via WebSocket
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        const area = state.areas.find(a => a.id === areaId);
+        const staff = assignedStaffId ? state.staff.find(s => s.id === assignedStaffId) : null;
+        ws.send(JSON.stringify({
+            type: 'alarm_triggered',
+            area_id: areaId,
+            area_name: area ? area.name : '?',
+            staff_id: assignedStaffId,
+            staff_name: staff ? staff.name : null,
+            alarm_time: new Date().toISOString()
+        }));
+    }
+    if(!alarmOpen) showNextAlarm();
 }
 function showNextAlarm(){
   if(alarmQueue.length===0){ alarmOpen=false; document.getElementById('overlay').classList.remove('show'); return; }
@@ -776,9 +789,40 @@ async function loadState() {
   }
 }
 
+// --- WEBSOCKET ---
+let ws = null;
+let wsRetryDelay = 1000;
+
+function connectWS() {
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(proto + '//' + location.host + '/ws');
+
+    ws.onopen = () => {
+        ws.send(JSON.stringify({role: 'worker'}));
+        wsRetryDelay = 1000;
+    };
+
+    ws.onmessage = (e) => {
+        try {
+            const msg = JSON.parse(e.data);
+            if (msg.type === 'config_changed') {
+                loadState();
+            }
+        } catch(err) {}
+    };
+
+    ws.onclose = () => {
+        setTimeout(connectWS, Math.min(wsRetryDelay, 30000));
+        wsRetryDelay *= 2;
+    };
+
+    ws.onerror = () => { ws.close(); };
+}
+
 // --- INIT ---
 loadState();
-setInterval(loadState, 300000); // Refresh every 5 min
+connectWS();
+setInterval(loadState, 300000);
 </script>
 </body>
 </html>
