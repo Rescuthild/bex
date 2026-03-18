@@ -1,8 +1,9 @@
+import json
 import os
 from datetime import datetime
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -13,6 +14,7 @@ from models import (
     ShiftCreate, ShiftOut,
     StaffCreate, StaffOut,
 )
+from websocket_manager import manager
 
 app = FastAPI(title="BEX Coffee")
 
@@ -28,6 +30,41 @@ def verify_token(token: str):
 def on_startup():
     init_db()
     migrate_db()
+
+
+# ═══════════════════════════════════════════════════════
+# WebSocket
+# ═══════════════════════════════════════════════════════
+
+@app.websocket("/ws")
+async def websocket_endpoint(ws: WebSocket):
+    await ws.accept()
+    try:
+        reg = await ws.receive_text()
+        data = json.loads(reg)
+        role = data.get("role", "worker")
+    except Exception:
+        role = "worker"
+
+    if role == "admin":
+        manager.admin_connections.append(ws)
+    else:
+        manager.worker_connections.append(ws)
+
+    try:
+        while True:
+            text = await ws.receive_text()
+            msg = json.loads(text)
+            if msg.get("type") == "alarm_triggered":
+                await manager.broadcast_admins(msg)
+    except WebSocketDisconnect:
+        manager.disconnect(ws)
+    except Exception:
+        manager.disconnect(ws)
+
+
+async def notify_config_change(change_type: str):
+    await manager.broadcast_workers({"type": "config_changed", "change": change_type})
 
 
 # ═══════════════════════════════════════════════════════
@@ -100,7 +137,7 @@ def shifts_today():
 
 
 @app.post("/api/logs", response_model=LogOut)
-def create_public_log(body: LogCreate):
+async def create_public_log(body: LogCreate):
     """Create a 'checked' log entry from the public panel."""
     confirmed_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with get_db() as db:
@@ -124,7 +161,16 @@ def create_public_log(body: LogCreate):
             """,
             (log_id,),
         ).fetchone()
-    return dict(row)
+    result = dict(row)
+    await manager.broadcast_admins({
+        "type": "alarm_confirmed",
+        "area_id": result["area_id"],
+        "area_name": result["area_name"],
+        "staff_id": result["staff_id"],
+        "staff_name": result["staff_name"],
+        "confirmed_at": result["confirmed_at"],
+    })
+    return result
 
 
 # ═══════════════════════════════════════════════════════
@@ -140,7 +186,7 @@ def admin_list_areas(token: str):
 
 
 @app.post("/api/admin/{token}/areas", response_model=AreaOut, status_code=201)
-def admin_create_area(token: str, body: AreaCreate):
+async def admin_create_area(token: str, body: AreaCreate):
     verify_token(token)
     with get_db() as db:
         cur = db.execute(
@@ -148,11 +194,12 @@ def admin_create_area(token: str, body: AreaCreate):
             (body.name, body.interval_min, body.delay_threshold_min),
         )
         area_id = cur.lastrowid
+    await notify_config_change("areas")
     return {"id": area_id, "name": body.name, "interval_min": body.interval_min, "delay_threshold_min": body.delay_threshold_min}
 
 
 @app.patch("/api/admin/{token}/areas/{area_id}", response_model=AreaOut)
-def admin_update_area(token: str, area_id: int, body: AreaUpdate):
+async def admin_update_area(token: str, area_id: int, body: AreaUpdate):
     verify_token(token)
     with get_db() as db:
         existing = db.execute("SELECT id, name, interval_min, delay_threshold_min FROM areas WHERE id = ?", (area_id,)).fetchone()
@@ -165,14 +212,16 @@ def admin_update_area(token: str, area_id: int, body: AreaUpdate):
             "UPDATE areas SET name = ?, interval_min = ?, delay_threshold_min = ? WHERE id = ?",
             (new_name, new_interval, new_delay, area_id),
         )
+    await notify_config_change("areas")
     return {"id": area_id, "name": new_name, "interval_min": new_interval, "delay_threshold_min": new_delay}
 
 
 @app.delete("/api/admin/{token}/areas/{area_id}", status_code=204)
-def admin_delete_area(token: str, area_id: int):
+async def admin_delete_area(token: str, area_id: int):
     verify_token(token)
     with get_db() as db:
         db.execute("DELETE FROM areas WHERE id = ?", (area_id,))
+    await notify_config_change("areas")
     return None
 
 
@@ -189,19 +238,21 @@ def admin_list_staff(token: str):
 
 
 @app.post("/api/admin/{token}/staff", response_model=StaffOut, status_code=201)
-def admin_create_staff(token: str, body: StaffCreate):
+async def admin_create_staff(token: str, body: StaffCreate):
     verify_token(token)
     with get_db() as db:
         cur = db.execute("INSERT INTO staff (name) VALUES (?)", (body.name,))
         staff_id = cur.lastrowid
+    await notify_config_change("staff")
     return {"id": staff_id, "name": body.name}
 
 
 @app.delete("/api/admin/{token}/staff/{staff_id}", status_code=204)
-def admin_delete_staff(token: str, staff_id: int):
+async def admin_delete_staff(token: str, staff_id: int):
     verify_token(token)
     with get_db() as db:
         db.execute("DELETE FROM staff WHERE id = ?", (staff_id,))
+    await notify_config_change("staff")
     return None
 
 
@@ -226,7 +277,7 @@ def admin_list_shifts(token: str):
 
 
 @app.post("/api/admin/{token}/shifts", response_model=ShiftOut, status_code=201)
-def admin_create_shift(token: str, body: ShiftCreate):
+async def admin_create_shift(token: str, body: ShiftCreate):
     verify_token(token)
     with get_db() as db:
         # Verify staff exists
@@ -238,6 +289,7 @@ def admin_create_shift(token: str, body: ShiftCreate):
             (body.staff_id, body.day_of_week, body.shift_start, body.shift_end),
         )
         shift_id = cur.lastrowid
+    await notify_config_change("shifts")
     return {
         "id": shift_id,
         "staff_id": body.staff_id,
@@ -249,10 +301,11 @@ def admin_create_shift(token: str, body: ShiftCreate):
 
 
 @app.delete("/api/admin/{token}/shifts/{shift_id}", status_code=204)
-def admin_delete_shift(token: str, shift_id: int):
+async def admin_delete_shift(token: str, shift_id: int):
     verify_token(token)
     with get_db() as db:
         db.execute("DELETE FROM shifts WHERE id = ?", (shift_id,))
+    await notify_config_change("shifts")
     return None
 
 
