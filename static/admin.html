@@ -166,6 +166,16 @@ tr:hover td{background:var(--cream)}
 .confirm-inline a{cursor:pointer;font-weight:600;text-decoration:underline;margin:0 3px}
 .confirm-inline a:first-child{color:var(--danger)}
 .confirm-inline a:last-child{color:var(--muted)}
+
+.live-card{background:var(--card);border-radius:14px;border:2px solid var(--border);padding:16px;text-align:center;transition:all .3s}
+.live-card.status-ok{border-color:var(--success);background:var(--success-bg)}
+.live-card.status-alarm{border-color:var(--amber);background:var(--amber-pale);animation:borderPulse 1s ease-in-out infinite}
+.live-card.status-late{border-color:var(--danger);background:var(--danger-bg);animation:borderPulse .5s ease-in-out infinite}
+.live-card.status-idle{border-color:var(--border)}
+.live-card-name{font-size:14px;font-weight:700;margin-bottom:8px}
+.live-card-status{font-size:12px;color:var(--muted);margin-bottom:4px}
+.live-card-detail{font-size:11px;color:var(--muted)}
+.live-card-time{font-size:22px;font-weight:800;margin:8px 0}
 </style>
 </head>
 <body>
@@ -184,6 +194,7 @@ tr:hover td{background:var(--cream)}
     <button class="tab-btn" data-tab="areas" onclick="switchTab('areas')">Alanlar</button>
     <button class="tab-btn" data-tab="staff" onclick="switchTab('staff')">Personel</button>
     <button class="tab-btn" data-tab="logs" onclick="switchTab('logs')">Loglar</button>
+    <button class="tab-btn" data-tab="live" onclick="switchTab('live')">Canlı İzleme</button>
   </nav>
   <div class="clock-wrap">
     <span id="live-time" style="font-size:14px;font-weight:700;color:rgba(255,255,255,.9);font-variant-numeric:tabular-nums">--:--:--</span>
@@ -253,7 +264,7 @@ tr:hover td{background:var(--cream)}
     <div class="card">
       <table>
         <thead>
-          <tr><th>Alan Adi</th><th>Kontrol Sikligi</th><th>Sil</th></tr>
+          <tr><th>Alan Adı</th><th>Kontrol Sıklığı</th><th>Gecikme Eşiği</th><th></th></tr>
         </thead>
         <tbody id="area-tbody"></tbody>
       </table>
@@ -321,6 +332,18 @@ tr:hover td{background:var(--cream)}
         <tbody id="log-tbody"></tbody>
       </table>
     </div>
+  </div>
+
+  <!-- TAB 6: CANLI IZLEME -->
+  <div id="pane-live" class="tab-pane">
+    <div class="panel-top">
+        <div>
+            <div class="panel-title">Canlı İzleme</div>
+            <div class="today-info" id="live-today-info"></div>
+        </div>
+        <div id="live-connection-badge" class="badge badge-off">Bağlanıyor...</div>
+    </div>
+    <div class="timer-grid" id="live-grid"></div>
   </div>
 
 </main>
@@ -446,6 +469,7 @@ function switchTab(tab) {
     else if (tab === 'areas') renderAreas();
     else if (tab === 'staff') renderStaffTab();
     else if (tab === 'logs') loadLogs();
+    else if (tab === 'live') renderLiveGrid();
 }
 
 // ==================== TIMER PERSISTENCE ====================
@@ -973,7 +997,7 @@ async function deleteShift(id) {
 function renderAreas() {
     const tbody = document.getElementById('area-tbody');
     if (state.areas.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:20px">Hen\u00fcz alan eklenmedi</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px">Hen\u00fcz alan eklenmedi</td></tr>';
         return;
     }
     tbody.innerHTML = state.areas.map(a => {
@@ -985,6 +1009,10 @@ function renderAreas() {
               <button class="interval-save" onclick="saveInterval(${a.id})">Kaydet</button>
             </div>
           </td>
+          <td><div class="interval-edit">
+              <input type="number" min="1" max="60" value="${a.delay_threshold_min}" id="idel-${a.id}" style="width:50px">
+              <span style="font-size:12px;color:var(--muted)">dk</span>
+          </div></td>
           <td id="del-area-${a.id}"><button class="btn-del" onclick="confirmDeleteArea(${a.id})">Sil</button></td>
         </tr>`;
     }).join('');
@@ -1017,8 +1045,9 @@ async function deleteArea(id) {
 
 async function saveInterval(areaId) {
     const val = parseInt(document.getElementById('imin-' + areaId).value);
+    const del = parseInt(document.getElementById('idel-' + areaId).value) || 5;
     if (!val || val < 1) { alert('Ge\u00e7erli bir de\u011fer giriniz'); return; }
-    await api(`/areas/${areaId}`, { method: 'PATCH', body: JSON.stringify({ interval_min: val }) });
+    await api(`/areas/${areaId}`, { method: 'PATCH', body: JSON.stringify({interval_min: val, delay_threshold_min: del}) });
     timers[areaId] = { deadline: Date.now() + val * 60 * 1000, total: val * 60 };
     saveTimers();
     await loadAreas();
@@ -1128,6 +1157,114 @@ function exportCSV() {
     a.click();
 }
 
+// ==================== LIVE MONITORING ====================
+let liveAlarms = {};
+let lastChecks = {};
+
+function renderLiveGrid() {
+    const grid = document.getElementById('live-grid');
+    if (!grid) return;
+    document.getElementById('live-today-info').textContent = DAYS_FULL[todayDayIndex()];
+
+    if (state.areas.length === 0) {
+        grid.innerHTML = '<div style="grid-column:1/-1;padding:32px;text-align:center;color:var(--muted)">Henüz alan eklenmedi.</div>';
+        return;
+    }
+
+    const now = Date.now();
+    grid.innerHTML = state.areas.map(a => {
+        const alarm = liveAlarms[a.id];
+        const check = lastChecks[a.id];
+        const threshold = (a.delay_threshold_min || 5) * 60 * 1000;
+
+        let statusClass = 'status-idle';
+        let statusText = 'Bekleniyor';
+        let detail = '';
+        let timeDisplay = '';
+
+        if (alarm) {
+            const elapsed = now - alarm.alarm_time.getTime();
+            if (elapsed > threshold) {
+                statusClass = 'status-late';
+                const delaySec = Math.round(elapsed / 1000);
+                timeDisplay = delaySec < 60 ? delaySec + 'sn' : Math.round(delaySec / 60) + 'dk ' + (delaySec % 60) + 'sn';
+                statusText = 'GECİKME!';
+                detail = alarm.staff_name ? alarm.staff_name + ' atandı' : 'Kimse atanmadı';
+            } else {
+                statusClass = 'status-alarm';
+                statusText = 'Alarm aktif';
+                const elSec = Math.round(elapsed / 1000);
+                timeDisplay = elSec < 60 ? elSec + 'sn' : Math.floor(elSec / 60) + 'dk ' + (elSec % 60) + 'sn';
+                detail = alarm.staff_name ? alarm.staff_name + ' kontrol edecek' : '';
+            }
+        } else if (check) {
+            statusClass = 'status-ok';
+            timeDisplay = check.confirmed_at.toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'});
+            statusText = 'Kontrol yapıldı';
+            detail = check.staff_name || '';
+        }
+
+        const icon = ICONS[state.areas.indexOf(a) % ICONS.length];
+        return `<div class="live-card ${statusClass}">
+            <div style="font-size:28px;margin-bottom:6px">${icon}</div>
+            <div class="live-card-name">${a.name}</div>
+            <div class="live-card-time">${timeDisplay || '--'}</div>
+            <div class="live-card-status">${statusText}</div>
+            <div class="live-card-detail">${detail}</div>
+        </div>`;
+    }).join('');
+}
+
+setInterval(() => {
+    if (activeTab === 'live') renderLiveGrid();
+}, 1000);
+
+// ==================== WEBSOCKET ====================
+let ws = null;
+let wsRetryDelay = 1000;
+
+function connectWS() {
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(proto + '//' + location.host + '/ws');
+
+    ws.onopen = () => {
+        ws.send(JSON.stringify({role: 'admin'}));
+        wsRetryDelay = 1000;
+        const badge = document.getElementById('live-connection-badge');
+        if (badge) { badge.textContent = 'Bağlı'; badge.className = 'badge badge-ok'; }
+    };
+
+    ws.onmessage = (e) => {
+        try {
+            const msg = JSON.parse(e.data);
+            if (msg.type === 'alarm_triggered') {
+                liveAlarms[msg.area_id] = {
+                    staff_name: msg.staff_name,
+                    alarm_time: new Date(msg.alarm_time)
+                };
+                if (activeTab === 'live') renderLiveGrid();
+            }
+            if (msg.type === 'alarm_confirmed') {
+                delete liveAlarms[msg.area_id];
+                lastChecks[msg.area_id] = {
+                    staff_name: msg.staff_name,
+                    confirmed_at: new Date(msg.confirmed_at.includes('Z') ? msg.confirmed_at : msg.confirmed_at + 'Z')
+                };
+                if (activeTab === 'live') renderLiveGrid();
+            }
+        } catch(err) {}
+    };
+
+    ws.onclose = () => {
+        const badge = document.getElementById('live-connection-badge');
+        if (badge) { badge.textContent = 'Bağlantı kesildi'; badge.className = 'badge badge-warn'; }
+        setTimeout(connectWS, Math.min(wsRetryDelay, 30000));
+        wsRetryDelay *= 2;
+    };
+
+    ws.onerror = () => { ws.close(); };
+}
+
 // ==================== DATA LOADING ====================
 async function loadAreas() { state.areas = await api('/areas'); }
 async function loadStaff() { state.staff = await api('/staff'); }
@@ -1159,7 +1296,9 @@ async function loadState() {
 }
 
 // ==================== INIT ====================
-loadState();
+loadState().then(() => {
+    connectWS();
+});
 setInterval(loadState, 300000); // Refresh every 5 min
 </script>
 </body>
